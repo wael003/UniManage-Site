@@ -52,8 +52,16 @@ const Grades = () => {
         if (!response.ok) {
           throw new Error('Failed to fetch grades');
         }
+
+        if (response.status === 401) {
+          toast({ title: 'Login', description: 'You need log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
+          setTimeout(() => {
+            window.location.href = '/Login';
+          }, 2000); // Wait 2 seconds before redirecting
+          return [];
+        }
         const responseData = await response.json();
-        
+
         // --- VALIDATION: Filter grades to only include TARGET_SEMESTER ---
         const filteredAndTransformedGrades = responseData.data
           .filter((grade: any) => grade.course?.semester === TARGET_SEMESTER) // Filter here!
@@ -96,7 +104,16 @@ const Grades = () => {
           // calculating GPA for a specific student regardless of semester.
           // If GPA calculation on the backend is semester-specific, this
           // might still fetch overall GPA.
-          const response = await fetch(`${API_BASE_URL}/gpa/${mongoId}`);
+          const response = await fetch(`${API_BASE_URL}/gpa/${mongoId}`, {
+            credentials: 'include',
+          });
+          if (response.status === 401) {
+            toast({ title: 'Login', description: 'You need log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
+            setTimeout(() => {
+              window.location.href = '/Login';
+            }, 2000); // Wait 2 seconds before redirecting
+            return [];
+          }
           if (!response.ok) {
             throw new Error(`Failed to fetch GPA for student ${mongoId}`);
           }
@@ -121,12 +138,12 @@ const Grades = () => {
     // Optional: Re-validate here, though filtering on fetch makes this less critical
     const gradeToUpdate = grades.find(g => g.id === gradeId);
     if (!gradeToUpdate) {
-        toast({
-            title: "Error",
-            description: "Grade not found for update.",
-            variant: "destructive"
-        });
-        return;
+      toast({
+        title: "Error",
+        description: "Grade not found for update.",
+        variant: "destructive"
+      });
+      return;
     }
     // Assuming you stored semester info on the grade object.
     // If not, you might need to fetch the course detail before updating.
@@ -151,8 +168,16 @@ const Grades = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ grade: points }),
       });
+      if (response.status === 401) {
+        toast({ title: 'Login', description: 'You need log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
+        setTimeout(() => {
+          window.location.href = '/Login';
+        }, 2000); // Wait 2 seconds before redirecting
+        return [];
+      }
 
       if (!response.ok) {
         throw new Error('Failed to update grade');
@@ -189,8 +214,8 @@ const Grades = () => {
 
   const filteredGrades = grades.filter(grade => {
     const matchesSearch = grade.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          grade.courseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          grade.studentId.toString().includes(searchTerm.toLowerCase());
+      grade.courseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      grade.studentId.toString().includes(searchTerm.toLowerCase());
     const matchesCourse = filterCourse === 'all' || grade.courseId === filterCourse;
     const matchesStudent = filterStudent === 'all' || grade.studentId === filterStudent;
     return matchesSearch && matchesCourse && matchesStudent;

@@ -26,7 +26,7 @@ const Courses = () => {
     department: 'Computer Science',
     schedule: 'Mon/Wed 10:00 AM - 11:30 AM',
     capacity: 30,
-    semester: "Spring 2025", 
+    semester: "Spring 2025",
     enrolled: 0,
     room: ''
   });
@@ -52,7 +52,16 @@ const Courses = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const response = await fetch(API_BASE_URL);
+        const response = await fetch(API_BASE_URL, {
+          credentials: 'include',
+        });
+        if (response.status === 401) {
+          toast({ title: 'Login', description: 'You need log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
+          setTimeout(() => {
+            window.location.href = '/Login';
+          }, 2000); // Wait 2 seconds before redirecting
+          return [];
+        }
         if (!response.ok) {
           throw new Error('Failed to fetch courses');
         }
@@ -64,12 +73,12 @@ const Courses = () => {
             id: course.courseId,
             name: course.name,
             instructor: course.instructor,
-            department: course.department || 'Computer Science', 
+            department: course.department || 'Computer Science',
             credits: course.creditHours,
-            schedule: course.schedule || 'Mon/Wed 10:00 AM - 11:30 AM', 
-            capacity: course.capacity || 30, 
-            enrolled: course.enrolled || 0, 
-            room: course.room || '', 
+            schedule: course.schedule || 'Mon/Wed 10:00 AM - 11:30 AM',
+            capacity: course.capacity || 30,
+            enrolled: course.enrolled || 0,
+            room: course.room || '',
             semester: course.semester || "Fall 2024" // Will mostly be Spring 2025 due to filter
           }));
         setCourses(transformedCourses);
@@ -93,12 +102,12 @@ const Courses = () => {
       course.instructor.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDepartment = filterDepartment === 'all' || course.department === filterDepartment;
-    const matchesTab = 
-      activeTab === 'all' ? true : 
-      activeTab === 'available' ? course.enrolled < course.capacity : 
-      activeTab === 'full' ? course.enrolled >= course.capacity : 
-      true;
-    
+    const matchesTab =
+      activeTab === 'all' ? true :
+        activeTab === 'available' ? course.enrolled < course.capacity :
+          activeTab === 'full' ? course.enrolled >= course.capacity :
+            true;
+
     // The semester filter is now applied directly when fetching data,
     // so no need to add it here again for the display filter.
     return matchesSearch && matchesDepartment && matchesTab;
@@ -120,8 +129,16 @@ const Courses = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(newCourse),
       });
+      if (response.status === 401) {
+        toast({ title: 'Login', description: 'You need log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
+        setTimeout(() => {
+          window.location.href = '/Login';
+        }, 2000); // Wait 2 seconds before redirecting
+        return [];
+      }
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -129,7 +146,7 @@ const Courses = () => {
       }
 
       const addedCourse = await response.json();
-      
+
       const transformedAddedCourse = {
         id: addedCourse.courseId,
         name: addedCourse.name,
@@ -140,28 +157,28 @@ const Courses = () => {
         capacity: addedCourse.capacity,
         enrolled: addedCourse.enrolled,
         room: addedCourse.room,
-        semester: addedCourse.semester 
+        semester: addedCourse.semester
       };
 
       // Only add to state if it's for the target semester
       if (transformedAddedCourse.semester === TARGET_SEMESTER) { // <--- ADDED THIS CHECK
         setCourses([...courses, transformedAddedCourse]);
       }
-      
+
       setNewCourse({
         name: '',
         courseId: '',
         creditHours: 3,
-        instructor : '',
+        instructor: '',
         department: 'Computer Science',
         schedule: 'Mon/Wed 10:00 AM - 11:30 AM',
         capacity: 30,
-        semester: TARGET_SEMESTER, 
+        semester: TARGET_SEMESTER,
         enrolled: 0,
         room: ''
       });
       setIsAddDialogOpen(false);
-      
+
       toast({
         title: "Success",
         description: `Course ${transformedAddedCourse.id} has been added`,
@@ -198,7 +215,7 @@ const Courses = () => {
         capacity: currentCourse.capacity,
         enrolled: currentCourse.enrolled,
         room: currentCourse.room,
-        semester: currentCourse.semester 
+        semester: currentCourse.semester
       };
 
       const response = await fetch(`${API_BASE_URL}/${currentCourse.id}`, {
@@ -206,8 +223,16 @@ const Courses = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(courseToUpdate),
       });
+      if (response.status === 401) {
+        toast({ title: 'Login', description: 'You need log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
+        setTimeout(() => {
+          window.location.href = '/Login';
+        }, 2000); // Wait 2 seconds before redirecting
+        return [];
+      }
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -215,7 +240,7 @@ const Courses = () => {
       }
 
       const updatedCourse = await response.json();
-      
+
       const transformedCourse = {
         id: updatedCourse.data.courseId,
         name: updatedCourse.data.name,
@@ -226,21 +251,21 @@ const Courses = () => {
         capacity: updatedCourse.data.capacity,
         enrolled: updatedCourse.data.enrolled,
         room: updatedCourse.data.room,
-        semester: updatedCourse.data.semester 
+        semester: updatedCourse.data.semester
       };
 
       // Since we are only displaying Spring 2025 courses,
       // if a course's semester somehow changes to something else,
       // we should remove it from the displayed list.
-      setCourses(courses.map(course => 
-        course.id === transformedCourse.id ? 
+      setCourses(courses.map(course =>
+        course.id === transformedCourse.id ?
           (transformedCourse.semester === TARGET_SEMESTER ? transformedCourse : null) : // <--- MODIFIED HERE
           course
       ).filter(Boolean)); // <--- Filter out any nulls
 
       setIsEditDialogOpen(false);
       setCurrentCourse(null);
-      
+
       toast({
         title: "Success",
         description: "Course information updated",
@@ -269,7 +294,16 @@ const Courses = () => {
       try {
         const response = await fetch(`${API_BASE_URL}/${id}`, {
           method: 'DELETE',
+          credentials: 'include',
         });
+
+        if (response.status === 401) {
+          toast({ title: 'Login', description: 'You need log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
+          setTimeout(() => {
+            window.location.href = '/Login';
+          }, 2000); // Wait 2 seconds before redirecting
+          return [];
+        }
 
         if (!response.ok) {
           const errorData = await response.json();
@@ -277,7 +311,7 @@ const Courses = () => {
         }
 
         setCourses(courses.filter(course => course.id !== id));
-        
+
         toast({
           title: "Success",
           description: "Course has been removed",
@@ -294,7 +328,7 @@ const Courses = () => {
   };
 
   const openEditDialog = (course) => {
-    setCurrentCourse({...course});
+    setCurrentCourse({ ...course });
     setIsEditDialogOpen(true);
   };
 
@@ -326,7 +360,7 @@ const Courses = () => {
           <p className="text-blue-700 mt-1">Manage university course offerings for {TARGET_SEMESTER}</p> {/* <--- Updated description */}
         </div>
         <div>
-          <Button 
+          <Button
             onClick={() => setIsAddDialogOpen(true)}
             className="bg-amber-500 hover:bg-amber-600 text-white flex items-center gap-2"
           >
@@ -434,12 +468,11 @@ const Courses = () => {
                           <span>{course.enrolled}/{course.capacity}</span>
                         </div>
                         <div className="w-full bg-blue-100 rounded-full h-1.5 mt-1.5">
-                          <div 
-                            className={`${
-                              course.enrolled/course.capacity >= 0.9 ? 'bg-red-500' : 
-                              course.enrolled/course.capacity >= 0.7 ? 'bg-amber-500' : 'bg-green-500'
-                            } h-1.5 rounded-full`} 
-                            style={{ width: `${Math.min(100, (course.enrolled/course.capacity) * 100)}%` }}
+                          <div
+                            className={`${course.enrolled / course.capacity >= 0.9 ? 'bg-red-500' :
+                                course.enrolled / course.capacity >= 0.7 ? 'bg-amber-500' : 'bg-green-500'
+                              } h-1.5 rounded-full`}
+                            style={{ width: `${Math.min(100, (course.enrolled / course.capacity) * 100)}%` }}
                           ></div>
                         </div>
                       </TableCell>
@@ -448,17 +481,17 @@ const Courses = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            variant="outline"
+                            size="sm"
                             className="border-blue-300 text-blue-700 hover:bg-blue-50"
                             onClick={() => openEditDialog(course)}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            variant="outline"
+                            size="sm"
                             className="border-red-300 text-red-700 hover:bg-red-50"
                             onClick={() => handleDeleteCourse(course.id)}
                           >
@@ -496,7 +529,7 @@ const Courses = () => {
                   <Input
                     id="id"
                     value={newCourse.courseId}
-                    onChange={(e) => setNewCourse({...newCourse, courseId: e.target.value})}
+                    onChange={(e) => setNewCourse({ ...newCourse, courseId: e.target.value })}
                     placeholder="CS101"
                   />
                 </div>
@@ -506,7 +539,7 @@ const Courses = () => {
                     id="credits"
                     type="number"
                     value={newCourse.creditHours}
-                    onChange={(e) => setNewCourse({...newCourse, creditHours: parseInt(e.target.value)})}
+                    onChange={(e) => setNewCourse({ ...newCourse, creditHours: parseInt(e.target.value) })}
                   />
                 </div>
               </div>
@@ -515,7 +548,7 @@ const Courses = () => {
                 <Input
                   id="name"
                   value={newCourse.name}
-                  onChange={(e) => setNewCourse({...newCourse, name: e.target.value})}
+                  onChange={(e) => setNewCourse({ ...newCourse, name: e.target.value })}
                   placeholder="Introduction to Computer Science"
                 />
               </div>
@@ -524,15 +557,15 @@ const Courses = () => {
                 <Input
                   id="instructor"
                   value={newCourse.instructor}
-                  onChange={(e) => setNewCourse({...newCourse, instructor: e.target.value})}
+                  onChange={(e) => setNewCourse({ ...newCourse, instructor: e.target.value })}
                   placeholder="Prof. Jane Smith"
                 />
               </div>
               <div className="grid gap-2">
                 <label htmlFor="department" className="text-sm font-medium">Department</label>
-                <Select 
-                  value={newCourse.department} 
-                  onValueChange={(value) => setNewCourse({...newCourse, department: value})}
+                <Select
+                  value={newCourse.department}
+                  onValueChange={(value) => setNewCourse({ ...newCourse, department: value })}
                 >
                   <SelectTrigger id="department">
                     <SelectValue placeholder="Select department" />
@@ -551,7 +584,7 @@ const Courses = () => {
                 <Input
                   id="schedule"
                   value={newCourse.schedule}
-                  onChange={(e) => setNewCourse({...newCourse, schedule: e.target.value})}
+                  onChange={(e) => setNewCourse({ ...newCourse, schedule: e.target.value })}
                   placeholder="Mon/Wed 10:00 AM - 11:30 AM"
                 />
               </div>
@@ -561,7 +594,7 @@ const Courses = () => {
                   id="capacity"
                   type="number"
                   value={newCourse.capacity}
-                  onChange={(e) => setNewCourse({...newCourse, capacity: parseInt(e.target.value)})}
+                  onChange={(e) => setNewCourse({ ...newCourse, capacity: parseInt(e.target.value) })}
                 />
               </div>
               <div className="grid gap-2">
@@ -569,7 +602,7 @@ const Courses = () => {
                 <Input
                   id="room"
                   value={newCourse.room}
-                  onChange={(e) => setNewCourse({...newCourse, room: e.target.value})}
+                  onChange={(e) => setNewCourse({ ...newCourse, room: e.target.value })}
                   placeholder="SCI-101"
                 />
               </div>
@@ -589,13 +622,13 @@ const Courses = () => {
             </div>
           </ScrollArea>
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsAddDialogOpen(false)}
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleAddCourse}
               disabled={!newCourse.courseId || !newCourse.name || !newCourse.instructor || newCourse.semester !== TARGET_SEMESTER}
             >
@@ -631,7 +664,7 @@ const Courses = () => {
                       id="edit-credits"
                       type="number"
                       value={currentCourse.credits}
-                      onChange={(e) => setCurrentCourse({...currentCourse, credits: parseInt(e.target.value)})}
+                      onChange={(e) => setCurrentCourse({ ...currentCourse, credits: parseInt(e.target.value) })}
                     />
                   </div>
                 </div>
@@ -640,7 +673,7 @@ const Courses = () => {
                   <Input
                     id="edit-name"
                     value={currentCourse.name}
-                    onChange={(e) => setCurrentCourse({...currentCourse, name: e.target.value})}
+                    onChange={(e) => setCurrentCourse({ ...currentCourse, name: e.target.value })}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -648,14 +681,14 @@ const Courses = () => {
                   <Input
                     id="edit-instructor"
                     value={currentCourse.instructor}
-                    onChange={(e) => setCurrentCourse({...currentCourse, instructor: e.target.value})}
+                    onChange={(e) => setCurrentCourse({ ...currentCourse, instructor: e.target.value })}
                   />
                 </div>
                 <div className="grid gap-2">
                   <label htmlFor="edit-department" className="text-sm font-medium">Department</label>
-                  <Select 
-                    value={currentCourse.department} 
-                    onValueChange={(value) => setCurrentCourse({...currentCourse, department: value})}
+                  <Select
+                    value={currentCourse.department}
+                    onValueChange={(value) => setCurrentCourse({ ...currentCourse, department: value })}
                   >
                     <SelectTrigger id="edit-department">
                       <SelectValue placeholder="Select department" />
@@ -674,7 +707,7 @@ const Courses = () => {
                   <Input
                     id="edit-schedule"
                     value={currentCourse.schedule}
-                    onChange={(e) => setCurrentCourse({...currentCourse, schedule: e.target.value})}
+                    onChange={(e) => setCurrentCourse({ ...currentCourse, schedule: e.target.value })}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -684,7 +717,7 @@ const Courses = () => {
                       id="edit-capacity"
                       type="number"
                       value={currentCourse.capacity}
-                      onChange={(e) => setCurrentCourse({...currentCourse, capacity: parseInt(e.target.value)})}
+                      onChange={(e) => setCurrentCourse({ ...currentCourse, capacity: parseInt(e.target.value) })}
                     />
                   </div>
                   <div className="grid gap-2">
@@ -693,7 +726,7 @@ const Courses = () => {
                       id="edit-enrolled"
                       type="number"
                       value={currentCourse.enrolled}
-                      onChange={(e) => setCurrentCourse({...currentCourse, enrolled: parseInt(e.target.value)})}
+                      onChange={(e) => setCurrentCourse({ ...currentCourse, enrolled: parseInt(e.target.value) })}
                     />
                   </div>
                 </div>
@@ -702,7 +735,7 @@ const Courses = () => {
                   <Input
                     id="edit-room"
                     value={currentCourse.room}
-                    onChange={(e) => setCurrentCourse({...currentCourse, room: e.target.value})}
+                    onChange={(e) => setCurrentCourse({ ...currentCourse, room: e.target.value })}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -720,13 +753,13 @@ const Courses = () => {
               </div>
             </ScrollArea>
             <DialogFooter>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setIsEditDialogOpen(false)}
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={handleEditCourse}
                 disabled={!currentCourse.name || !currentCourse.instructor || currentCourse.semester !== TARGET_SEMESTER}
               >

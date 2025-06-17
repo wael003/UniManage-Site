@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GraduationCap, Mail, Lock, BookOpen } from 'lucide-react';
@@ -17,23 +16,59 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate login process
-    setTimeout(() => {
-      if (email && password) {
+    try {
+      const response = await fetch('http://localhost:3000/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (response.ok) {
+        // Login successful (status 200)
+        const data = await response.json();
+        // You might want to store the token (e.g., in localStorage)
+        // localStorage.setItem('authToken', data.token); 
+
         toast({
           title: "Login Successful",
-          description: "Welcome to UniManage System!",
+          description: data.message || "Welcome to UniManage System!", // Use backend message if available
         });
         navigate('/dashboard');
       } else {
+        // Login failed (e.g., 401, 400, 500)
+        let errorMessage = "Please check your credentials and try again."; // Default error message
+        try {
+          const errorData = await response.json();
+          // If backend provides a message, use it
+          if (errorData && errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (jsonError) {
+          // Fallback if the response is not valid JSON (e.g., plain text error)
+          console.error("Error parsing error response:", jsonError);
+          errorMessage = `Login failed: ${response.statusText || "Unknown error."}`;
+        }
+
         toast({
           title: "Login Failed",
-          description: "Please enter valid credentials.",
+          description: errorMessage,
           variant: "destructive",
         });
       }
+    } catch (error) {
+      // Network errors (server unreachable, no response)
+      console.error("Login network error:", error);
+      toast({
+        title: "Login Error",
+        description: "Could not connect to the server. Please check your internet connection or try again later.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -104,10 +139,12 @@ const Login = () => {
               {isLoading ? "Signing In..." : "Sign In to Dashboard"}
             </Button>
           </form>
+          {/* You can remove or modify this section once real credentials are in place */}
           <div className="mt-6 text-center">
-            <p className="text-xs text-blue-600">
-              Demo Credentials: Any email and password will work
+            <p className="text-sm text-blue-700">
+              Access restricted to university administration staff. Contact IT support for access.
             </p>
+
           </div>
         </CardContent>
       </Card>

@@ -42,7 +42,16 @@ const StudentProfile = () => {
   useEffect(() => {
     const fetchStudent = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/api/students/${id}`);
+        const res = await fetch(`http://localhost:3000/api/students/${id}`,{
+          credentials : 'include',
+        });
+        if (res.status === 401) {
+          toast({ title: 'Login', description: 'You need log in to authorize!' , className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500',});
+          setTimeout(() => {
+            window.location.href = '/Login';
+          }, 2000); // Wait 2 seconds before redirecting
+          return [];
+        }
         if (!res.ok) throw new Error("Failed to fetch students");
         const result = await res.json();
         setStudent(result.data);
@@ -54,7 +63,16 @@ const StudentProfile = () => {
 
     const fetchGrades = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/grades/${id}`);
+        const res = await fetch(`http://localhost:3000/grades/${id}`,{
+          credentials : 'include',
+        });
+        if (res.status === 401) {
+          toast({ title: 'Login', description: 'You need log in to authorize!' , className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500',});
+          setTimeout(() => {
+            window.location.href = '/Login';
+          }, 2000); // Wait 2 seconds before redirecting
+          return [];
+        }
         if (!res.ok) throw new Error("Failed to fetch grades");
         const json = await res.json();
 
@@ -72,7 +90,16 @@ const StudentProfile = () => {
 
     const fetchGPA = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/grades/gpa/${id}`);
+        const res = await fetch(`http://localhost:3000/grades/gpa/${id}`,{
+          credentials : 'include',
+        });
+        if (res.status === 401) {
+          toast({ title: 'Login', description: 'You need log in to authorize!' , className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500',});
+          setTimeout(() => {
+            window.location.href = '/Login';
+          }, 2000); // Wait 2 seconds before redirecting
+          return [];
+        }
         if (!res.ok) throw new Error("Failed to fetch GPA");
         const result = await res.json();
         setGPA(result);

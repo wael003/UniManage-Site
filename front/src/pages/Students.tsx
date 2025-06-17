@@ -14,7 +14,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import ContactModal from '@/components/ContactModal';
 
 const fetchStudents = async () => {
-  const res = await fetch('http://localhost:3000/api/students');
+  const res = await fetch('http://localhost:3000/api/students', {
+    credentials: 'include'
+  });
+  if (res.status === 401) {
+          toast({ title: 'Login', description: 'You need log in to authorize!' , className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500',});
+          setTimeout(() => {
+            window.location.href = '/Login';
+          }, 2000); // Wait 2 seconds before redirecting
+          return [];
+        }
   if (!res.ok) throw new Error('Failed to fetch students');
   const result = await res.json();
   return result.data;
@@ -23,7 +32,15 @@ const fetchStudents = async () => {
 const deleteStudent = async (id: string) => {
   const res = await fetch(`http://localhost:3000/api/students/${id}`, {
     method: 'DELETE',
+    credentials: 'include',
   });
+  if (res.status === 401) {
+          toast({ title: 'Login', description: 'You need log in to authorize!' , className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500',});
+          setTimeout(() => {
+            window.location.href = '/Login';
+          }, 2000); // Wait 2 seconds before redirecting
+          return [];
+        }
   if (!res.ok) throw new Error('Failed to delete student');
   return res.json();
 };
@@ -32,8 +49,16 @@ const addStudent = async (student: any) => {
   const res = await fetch('http://localhost:3000/api/students', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify(student),
   });
+  if (res.status === 401) {
+          toast({ title: 'Login', description: 'You need log in to authorize!' , className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500',});
+          setTimeout(() => {
+            window.location.href = '/Login';
+          }, 2000); // Wait 2 seconds before redirecting
+          return [];
+        }
   if (!res.ok) throw new Error('Failed to add student');
   return res.json();
 };
@@ -42,8 +67,16 @@ const updateStudent = async (student: any) => {
   const res = await fetch(`http://localhost:3000/api/students/${student._id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify(student),
   });
+  if (res.status === 401) {
+          toast({ title: 'Login', description: 'You need log in to authorize!' , className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500',});
+          setTimeout(() => {
+            window.location.href = '/Login';
+          }, 2000); // Wait 2 seconds before redirecting
+          return [];
+        }
   if (!res.ok) throw new Error('Failed to update student');
   return res.json();
 };
@@ -53,8 +86,8 @@ const Students = () => {
   const [filterDepartment, setFilterDepartment] = useState('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-    const [selectedStudent, setSelectedStudent] = useState(null);
-      const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [newStudent, setNewStudent] = useState({
     name: '',
     email: '',
@@ -129,7 +162,16 @@ const Students = () => {
 
   const fetchStudentGrades = async (studentId: string) => {
     try {
-      const res = await fetch(`http://localhost:3000/grades/${studentId}`);
+      const res = await fetch(`http://localhost:3000/grades/${studentId}`, {
+        credentials: 'include',
+      });
+      if (res.status === 401) {
+       toast({ title: 'Login', description: 'You need log in to authorize!' });
+      setTimeout(() => {
+        window.location.href = '/Login';
+      }, 2000); // Wait 2 seconds before redirecting
+      return [];
+    }
       if (!res.ok) throw new Error('Failed to fetch grades');
       const data = await res.json();
       return data.data || [];
@@ -141,7 +183,7 @@ const Students = () => {
 
   const calculateGPA = (grades: any[]) => {
     if (!grades || grades.length === 0) return null;
-    
+
     let totalGradePoints = 0;
     let totalCourses = 0;
 
@@ -163,7 +205,7 @@ const Students = () => {
       for (const student of students) {
         const grades = await fetchStudentGrades(student._id);
         gradesMap[student._id] = grades;
-        
+
         const gpa = calculateGPA(grades);
         if (gpa !== null) {
           gpaMap[student._id] = gpa;
@@ -210,7 +252,7 @@ const Students = () => {
     setCurrentStudent(student);
     setIsEditDialogOpen(true);
   };
- const openContactModal = (student) => {
+  const openContactModal = (student) => {
     setSelectedStudent(student);
     setIsContactModalOpen(true);
   };
@@ -274,7 +316,7 @@ const Students = () => {
                   <TableHead className="text-blue-900">Name</TableHead>
                   <TableHead className="text-blue-900">Email</TableHead>
                   <TableHead className="text-blue-900">Department</TableHead>
-                 
+
                   <TableHead className="text-blue-900">Courses</TableHead>
                   <TableHead className="text-blue-900">GPA</TableHead>
                   <TableHead className="text-blue-900 text-right">Actions</TableHead>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from '@/hooks/use-toast';
 import {
   Users,
   BookOpen,
@@ -61,10 +62,21 @@ const Dashboard = () => {
     }
   ];
 
+  console.log(document.cookie)
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/students/');
+        const response = await fetch('http://localhost:3000/api/students/', {
+          credentials: 'include',
+        });
+        if (response.status === 401) {
+          toast({ title: 'Login', description: 'You need log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
+          setTimeout(() => {
+            window.location.href = '/Login';
+          }, 2000); // Wait 2 seconds before redirecting
+          return [];
+        }
+
         const data = await response.json();
         setTotalStudents(data.data.length);
 
@@ -94,7 +106,16 @@ const Dashboard = () => {
 
     const fetchCourses = async () => {
       try {
-        const response = await fetch('http://localhost:3000/courses/');
+        const response = await fetch('http://localhost:3000/courses/', {
+          credentials: 'include',
+        });
+        if (response.status === 401) {
+          toast({ title: 'Login', description: 'You need log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
+          setTimeout(() => {
+            window.location.href = '/Login';
+          }, 2000); // Wait 2 seconds before redirecting
+          return [];
+        }
         const data = await response.json();
 
         // Filter courses for the TARGET_SEMESTER
@@ -116,7 +137,16 @@ const Dashboard = () => {
 
     const fetchGrades = async () => {
       try {
-        const response = await fetch('http://localhost:3000/grades/');
+        const response = await fetch('http://localhost:3000/grades/', {
+          credentials: 'include',
+        });
+        if (response.status === 401) {
+          toast({ title: 'Login', description: 'You need log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
+          setTimeout(() => {
+            window.location.href = '/Login';
+          }, 2000); // Wait 2 seconds before redirecting
+          return [];
+        }
         const data = await response.json();
 
         // Filter grades for the TARGET_SEMESTER
@@ -174,7 +204,16 @@ const Dashboard = () => {
 
     const fetchNotifications = async () => {
       try {
-        const response = await fetch('http://localhost:3000/notify');
+        const response = await fetch('http://localhost:3000/notify', {
+          credentials: 'include',
+        });
+        if (response.status === 401) {
+          toast({ title: 'Login', description: 'You need log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
+          setTimeout(() => {
+            window.location.href = '/Login';
+          }, 2000); // Wait 2 seconds before redirecting
+          return [];
+        }
         const data = await response.json();
         const sortedNotifications = data.sort((a, b) => new Date(b.date) - new Date(a.date));
 
