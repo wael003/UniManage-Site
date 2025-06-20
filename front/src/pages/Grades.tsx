@@ -37,18 +37,29 @@ const Grades = () => {
     { grade: 'F', points: 0.00 }
   ];
 
+  // This function now converts numerical points to the closest letter grade.
+  // It's used for displaying letter grades when `displayNumericalGrade` is false.
   const pointsToGrade = (points: number) => {
-    const closestOption = gradeOptions.reduce((prev, curr) => {
-      return (Math.abs(curr.points - points) < Math.abs(prev.points - points) ? curr : prev);
-    });
-    return closestOption ? closestOption.grade : 'Unknown';
+    // Sort options by points in descending order to find the highest matching grade
+    const sortedOptions = [...gradeOptions].sort((a, b) => b.points - a.points);
+
+    for (const option of sortedOptions) {
+      // Find the first grade option whose points are less than or equal to the given points
+      // This ensures that 3.75 (A) is returned for 3.75, not 4.00 (A+)
+      if (points >= option.points) {
+        return option.grade;
+      }
+    }
+    return 'F'; // Default to F if points are below the lowest defined grade
   };
 
   // Fetch grades on component mount
   useEffect(() => {
     const fetchGrades = async () => {
       try {
-        const response = await fetch(API_BASE_URL);
+        const response = await fetch(API_BASE_URL,{
+          credentials : 'include'
+        });
         if (!response.ok) {
           throw new Error('Failed to fetch grades');
         }
@@ -58,7 +69,7 @@ const Grades = () => {
           setTimeout(() => {
             window.location.href = '/Login';
           }, 2000); // Wait 2 seconds before redirecting
-          return [];
+          return; // Exit early after redirecting
         }
         const responseData = await response.json();
 
@@ -67,14 +78,14 @@ const Grades = () => {
           .filter((grade: any) => grade.course?.semester === TARGET_SEMESTER) // Filter here!
           .map((grade: any) => ({
             id: grade._id,
-            studentMongoId: grade.student ? grade.student._id : 'Unknown',
-            studentId: grade.student ? grade.student.studentId : 'Unknown',
+            studentMongoId: grade.student ? grade.student._id : 'Unknown', // Keep mongoId for reference if needed
+            studentId: grade.student ? grade.student.studentId : 'Unknown', // Use studentId for GPA fetch
             studentName: grade.student ? grade.student.name : 'Unknown Student',
             courseId: grade.course ? grade.course.courseId : 'Unknown',
             courseName: grade.course ? grade.course.name : 'Unknown Course',
             instructor: grade.course?.instructor || 'Unknown Instructor',
-            grade: pointsToGrade(grade.grade), // Convert points to letter grade for display
-            points: grade.grade // Keep original points for numerical display and saving
+            numericalGrade: grade.grade, // Store the numerical grade directly
+            letterGrade: pointsToGrade(grade.grade) // Convert numerical grade to letter grade for display
           }));
         setGrades(filteredAndTransformedGrades);
       } catch (error) {
@@ -91,20 +102,18 @@ const Grades = () => {
     fetchGrades();
   }, []);
 
-  // Fetch GPA for all students using their MongoDB _id
+  // Fetch GPA for all students using their studentId
   useEffect(() => {
     const fetchAllGPAs = async () => {
-      const studentMongoIds = [...new Set(grades.map(grade => grade.studentMongoId))];
+      // Use studentId for GPA fetch, as the backend likely expects it.
+      const studentIdsForGpa = [...new Set(grades.map(grade => grade.studentId))];
       const newGpaCache: Record<string, string> = {};
 
-      for (const mongoId of studentMongoIds) {
-        if (mongoId === 'Unknown') continue;
+      for (const studentId of studentIdsForGpa) {
+        if (studentId === 'Unknown') continue;
         try {
-          // It's crucial here that your backend GPA calculation API can handle
-          // calculating GPA for a specific student regardless of semester.
-          // If GPA calculation on the backend is semester-specific, this
-          // might still fetch overall GPA.
-          const response = await fetch(`${API_BASE_URL}/gpa/${mongoId}`, {
+          // *** CRITICAL CHANGE: Use studentId instead of studentMongoId here ***
+          const response = await fetch(`${API_BASE_URL}/gpa/${studentId}`, {
             credentials: 'include',
           });
           if (response.status === 401) {
@@ -112,16 +121,17 @@ const Grades = () => {
             setTimeout(() => {
               window.location.href = '/Login';
             }, 2000); // Wait 2 seconds before redirecting
-            return [];
+            return; // Exit early after redirecting
           }
           if (!response.ok) {
-            throw new Error(`Failed to fetch GPA for student ${mongoId}`);
+            throw new Error(`Failed to fetch GPA for student ${studentId}`);
           }
           const data = await response.json();
-          newGpaCache[mongoId] = parseFloat(data.GPA).toFixed(2);
+          // *** CRITICAL CHANGE: Cache by studentId ***
+          newGpaCache[studentId] = parseFloat(data.GPA).toFixed(2);
         } catch (error) {
           console.error(error);
-          newGpaCache[mongoId] = 'N/A';
+          newGpaCache[studentId] = 'N/A';
         }
       }
 
@@ -134,34 +144,7 @@ const Grades = () => {
   }, [grades]);
 
   // Update grade via API
-  const updateGrade = async (gradeId: string, letterGrade: string, points: number) => {
-    // Optional: Re-validate here, though filtering on fetch makes this less critical
-    const gradeToUpdate = grades.find(g => g.id === gradeId);
-    if (!gradeToUpdate) {
-      toast({
-        title: "Error",
-        description: "Grade not found for update.",
-        variant: "destructive"
-      });
-      return;
-    }
-    // Assuming you stored semester info on the grade object.
-    // If not, you might need to fetch the course detail before updating.
-    // For now, given the initial fetch filters, this check might be redundant if the UI only shows Fall 2024 grades.
-    // However, it's good practice for robustness.
-    // You would need to store `semester` in the `transformedGrades` if you want to check it here.
-    /*
-    if (gradeToUpdate.semester !== TARGET_SEMESTER) {
-        toast({
-            title: "Error",
-            description: `Only grades for ${TARGET_SEMESTER} can be updated.`,
-            variant: "destructive"
-        });
-        return;
-    }
-    */
-
-
+  const updateGrade = async (gradeId: string, newNumericalGrade: number) => {
     try {
       const response = await fetch(`${API_BASE_URL}/${gradeId}`, {
         method: 'PUT',
@@ -169,14 +152,14 @@ const Grades = () => {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ grade: points }),
+        body: JSON.stringify({ grade: newNumericalGrade }), // Send the numerical grade directly
       });
       if (response.status === 401) {
         toast({ title: 'Login', description: 'You need log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
         setTimeout(() => {
           window.location.href = '/Login';
         }, 2000); // Wait 2 seconds before redirecting
-        return [];
+        return; // Exit early after redirecting
       }
 
       if (!response.ok) {
@@ -185,16 +168,16 @@ const Grades = () => {
 
       setGrades(grades.map(grade =>
         grade.id === gradeId
-          ? { ...grade, grade: letterGrade, points }
+          ? { ...grade, numericalGrade: newNumericalGrade, letterGrade: pointsToGrade(newNumericalGrade) }
           : grade
       ));
 
-      // Invalidate GPA cache for the student using studentMongoId
-      const studentMongoId = grades.find(g => g.id === gradeId)?.studentMongoId;
-      if (studentMongoId) {
+      // Invalidate GPA cache for the student using studentId (since that's the new cache key)
+      const studentIdToInvalidate = grades.find(g => g.id === gradeId)?.studentId;
+      if (studentIdToInvalidate) {
         setGpaCache(prev => {
           const newCache = { ...prev };
-          delete newCache[studentMongoId];
+          delete newCache[studentIdToInvalidate];
           return newCache;
         });
       }
@@ -225,23 +208,23 @@ const Grades = () => {
   const uniqueCourses = [...new Set(grades.map(grade => ({ id: grade.courseId, name: grade.courseName })))];
   const uniqueStudents = [...new Set(grades.map(grade => ({ id: grade.studentId, name: grade.studentName })))];
 
-  const handleEditGrade = (gradeId: string, currentGrade: string) => {
+  const handleEditGrade = (gradeId: string, currentNumericalGrade: number) => {
     setEditingGrade(gradeId);
-    setTempGrade(currentGrade);
+    setTempGrade(currentNumericalGrade.toFixed(2)); // Display numerical grade for editing
   };
 
   const handleSaveGrade = (gradeId: string) => {
-    const selectedGradeOption = gradeOptions.find(option => option.grade === tempGrade);
-    if (!selectedGradeOption) {
+    const numericalValue = parseFloat(tempGrade);
+    if (isNaN(numericalValue) || numericalValue < 0 || numericalValue > 4.0) { // Validate numerical grade input
       toast({
         title: "Error",
-        description: "Please select a valid grade",
+        description: "Please enter a valid numerical grade (0.00 - 4.00)",
         variant: "destructive",
       });
       return;
     }
 
-    updateGrade(gradeId, selectedGradeOption.grade, selectedGradeOption.points);
+    updateGrade(gradeId, numericalValue);
     setEditingGrade(null);
     setTempGrade('');
   };
@@ -353,7 +336,8 @@ const Grades = () => {
                       {grade.studentId}
                     </Badge>
                     <span className="text-sm text-blue-600">
-                      GPA: {gpaCache[grade.studentMongoId] || 'Loading...'}
+                      {/* *** CRITICAL CHANGE: Access GPA from cache using studentId *** */}
+                      GPA: {gpaCache[grade.studentId] || 'Loading...'}
                     </span>
                   </div>
 
@@ -375,18 +359,15 @@ const Grades = () => {
                     <div className="text-xs text-blue-600 mb-1">Current Grade</div>
                     {editingGrade === grade.id ? (
                       <div className="flex items-center space-x-2">
-                        <Select value={tempGrade} onValueChange={setTempGrade}>
-                          <SelectTrigger className="w-20">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {gradeOptions.map(option => (
-                              <SelectItem key={option.grade} value={option.grade}>
-                                {option.grade}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0.00"
+                          max="4.00"
+                          value={tempGrade}
+                          onChange={(e) => setTempGrade(e.target.value)}
+                          className="w-20 text-center"
+                        />
                         <Button
                           size="sm"
                           onClick={() => handleSaveGrade(grade.id)}
@@ -406,34 +387,24 @@ const Grades = () => {
                     ) : (
                       <div className="flex items-center space-x-2">
                         {displayNumericalGrade ? (
-                          <Badge className={`${getGradeColor(grade.grade)} text-lg font-bold px-3 py-1`}>
-                            {grade.points.toFixed(2)}
+                          <Badge className={`${getGradeColor(grade.letterGrade)} text-lg font-bold px-3 py-1`}>
+                            {grade.numericalGrade.toFixed(2)}
                           </Badge>
                         ) : (
-                          <Badge className={`${getGradeColor(grade.grade)} text-lg font-bold px-3 py-1`}>
-                            {grade.grade}
+                          <Badge className={`${getGradeColor(grade.letterGrade)} text-lg font-bold px-3 py-1`}>
+                            {grade.letterGrade}
                           </Badge>
                         )}
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleEditGrade(grade.id, grade.grade)}
+                          onClick={() => handleEditGrade(grade.id, grade.numericalGrade)}
                           className="border-blue-300 text-blue-700 hover:bg-blue-50"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                       </div>
                     )}
-                  </div>
-
-                  {/* This section now always shows Grade Points in #.# format,
-                      regardless of the displayNumericalGrade toggle.
-                      You can remove this if you only want one unified display. */}
-                  <div className="text-center">
-                    <div className="text-xs text-blue-600 mb-1">Grade Points</div>
-                    <div className="text-lg font-bold text-blue-900">
-                      {grade.points.toFixed(2)}
-                    </div>
                   </div>
                 </div>
               </div>
@@ -467,7 +438,14 @@ const Grades = () => {
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
               {gradeOptions.slice(0, 6).map(gradeOption => {
-                const count = filteredGrades.filter(grade => grade.grade === gradeOption.grade).length;
+                // Calculate count based on the numerical grade being within the range for the letter grade
+                const count = filteredGrades.filter(grade => {
+                    const gradePoints = grade.numericalGrade;
+                    // Find the actual grade object that corresponds to the student's numerical grade
+                    const studentLetterGrade = pointsToGrade(gradePoints);
+                    return studentLetterGrade === gradeOption.grade;
+                }).length;
+                
                 const percentage = filteredGrades.length > 0 ? ((count / filteredGrades.length) * 100).toFixed(1) : '0';
 
                 return (

@@ -80,9 +80,10 @@ const Dashboard = () => {
         const data = await response.json();
         setTotalStudents(data.data.length);
 
-        // Calculate students by department
+        // Calculate students by department, now accessing student.department.name
         const departmentCounts = data.data.reduce((acc, student) => {
-          acc[student.department] = (acc[student.department] || 0) + 1;
+          const departmentName = student.department ? student.department.name : 'Unknown';
+          acc[departmentName] = (acc[departmentName] || 0) + 1;
           return acc;
         }, {});
         setStudentsByDepartment(
@@ -161,8 +162,8 @@ const Dashboard = () => {
 
         // Populate semesterGradesData for the current semester
         const formattedSemesterGrades = filteredGradesForCurrentSemester.map(gradeEntry => ({
-          studentName: gradeEntry.student.name,
-          courseName: gradeEntry.course.name,
+          studentName: gradeEntry.student ? gradeEntry.student.name : 'Unknown Student',
+          courseName: gradeEntry.course ? gradeEntry.course.name : 'Unknown Course',
           grade: gradeEntry.grade,
         }));
         setSemesterGradesData(formattedSemesterGrades);
@@ -257,7 +258,7 @@ const Dashboard = () => {
 
   const handleViewAllNotifications = (e) => {
     e.preventDefault();
-    setDisplayCount(prevCount => prevCount === 4 ? 10 : 4); // Display all or revert to 4
+    setDisplayCount(prevCount => prevCount === 4 ? notifications.length : 4); // Display all or revert to 4
   };
 
   const notificationsToDisplay = notifications.slice(0, displayCount);
@@ -490,13 +491,13 @@ const Dashboard = () => {
                   </div>
                 </div>
               ))}
-              {/* Only show "View all notifications" if there are more notifications than currently displayed and we are showing 4 or less */}
-              {notifications.length > displayCount && displayCount <= 4 && (
+              {/* Only show "View all notifications" if there are more notifications than currently displayed and displayCount is less than total notifications */}
+              {notifications.length > displayCount && (
                 <div className="text-center">
                   <a href="#" onClick={handleViewAllNotifications} className="text-blue-600 text-sm hover:underline">View all notifications</a>
                 </div>
               )}
-              {/* Only show "Show less" if we're currently displaying more than 4 notifications */}
+              {/* Only show "Show less" if we're currently displaying more than 4 notifications (meaning "View all" was clicked) */}
               {displayCount > 4 && (
                 <div className="text-center">
                   <a href="#" onClick={handleViewAllNotifications} className="text-blue-600 text-sm hover:underline">Show less</a>

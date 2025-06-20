@@ -13,7 +13,7 @@ exports.Login = async (req, res) => {
 
         const user = await User.findOne({ email });
 
-        
+
 
         if (!user) {
             return res.status(401).send("Invalid email or password.");
@@ -35,10 +35,12 @@ exports.Login = async (req, res) => {
 
         const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET);
         res.cookie("token", token, {
-            maxAge: 60 * 1000
+            maxAge: 60 * 60 * 1000, 
+            httpOnly: true,         
+            secure: false           
         });
 
-        res.status(200).json({ message: 'Login successful!', user: { id: user._id, email: user.email  },token : token }); // Optional: useful if the frontend also needs the token
+        res.status(200).json({ message: 'Login successful!', user: { id: user._id, email: user.email }, token: token }); // Optional: useful if the frontend also needs the token
 
     } catch (err) {
         console.error("Outer login error:", err);
@@ -50,13 +52,13 @@ exports.Login = async (req, res) => {
 exports.SignUp = async (req, res) => {
     try {
 
-        const { name, email, password, role } = req.body;
+        const { name, email, password, departmentCategory, role } = req.body;
 
         const existingUser = await User.findOne({ email });
         if (existingUser) return res.status(400).send("Email already registered.");
 
 
-        await User.create({ name, email, password, role });
+        await User.create({ name, email, password, departmentCategory, role });
 
         res.json({ message: "signed up!" });
 

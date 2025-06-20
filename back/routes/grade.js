@@ -4,8 +4,8 @@ const auth = require('../middleware/auth');
 
 const grade = require('../controller/gradeController')
 
-route.get('/' , grade.getGrades);
-route.get('/:studentId' , grade.getStudentsGrade);
+route.get('/' ,auth.authMiddleware, grade.getGrades);
+route.get('/:studentId',auth.authMiddleware , grade.getStudentsGrade);
 route.post('/' , grade.addGrade);
 route.put('/:gradeId',auth.authMiddleware , grade.updateGrade);
 route.delete('/:gradeId' , grade.deleteGrade);

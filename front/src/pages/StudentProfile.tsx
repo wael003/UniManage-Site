@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import AcademicReportModal from '@/components/AcademicReportModal';
+import { toast } from '@/hooks/use-toast'; // Make sure you import toast
 
 type GPAType = {
   student: string;
@@ -29,7 +30,7 @@ interface SemesterData {
 }
 
 const StudentProfile = () => {
-  const { id } = useParams();
+  const { id } = useParams(); // This `id` is the MongoDB _id
   const [student, setStudent] = useState<any>(null);
   const [grades, setGrades] = useState<any[]>([]);
   const [gpa, setGPA] = useState<GPAType | null>(null);
@@ -42,15 +43,15 @@ const StudentProfile = () => {
   useEffect(() => {
     const fetchStudent = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/api/students/${id}`,{
-          credentials : 'include',
+        const res = await fetch(`http://localhost:3000/api/students/${id}`, {
+          credentials: 'include',
         });
         if (res.status === 401) {
-          toast({ title: 'Login', description: 'You need log in to authorize!' , className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500',});
+          toast({ title: 'Login', description: 'You need to log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
           setTimeout(() => {
             window.location.href = '/Login';
           }, 2000); // Wait 2 seconds before redirecting
-          return [];
+          return;
         }
         if (!res.ok) throw new Error("Failed to fetch students");
         const result = await res.json();
@@ -63,15 +64,16 @@ const StudentProfile = () => {
 
     const fetchGrades = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/grades/${id}`,{
-          credentials : 'include',
+        // This fetch uses the MongoDB _id, which is correct for getting all grades associated with it
+        const res = await fetch(`http://localhost:3000/grades/${id}`, {
+          credentials: 'include',
         });
         if (res.status === 401) {
-          toast({ title: 'Login', description: 'You need log in to authorize!' , className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500',});
+          toast({ title: 'Login', description: 'You need to log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
           setTimeout(() => {
             window.location.href = '/Login';
           }, 2000); // Wait 2 seconds before redirecting
-          return [];
+          return;
         }
         if (!res.ok) throw new Error("Failed to fetch grades");
         const json = await res.json();
@@ -88,17 +90,31 @@ const StudentProfile = () => {
       }
     };
 
+    fetchStudent();
+    fetchGrades();
+    // No direct fetchGPA here, it will be triggered by a separate useEffect when student data is available
+  }, [id]); // Only re-run when the URL ID changes
+
+
+  // New useEffect to fetch GPA once student data (specifically student.studentId) is available
+  useEffect(() => {
     const fetchGPA = async () => {
+      if (!student || student.studentId === undefined) {
+        // Only attempt to fetch GPA if student data is loaded and has a studentId
+        return;
+      }
+
       try {
-        const res = await fetch(`http://localhost:3000/grades/gpa/${id}`,{
-          credentials : 'include',
+        // *** CRITICAL CHANGE: Use student.studentId instead of the URL 'id' for GPA fetch ***
+        const res = await fetch(`http://localhost:3000/grades/gpa/${student.studentId}`, {
+          credentials: 'include',
         });
         if (res.status === 401) {
-          toast({ title: 'Login', description: 'You need log in to authorize!' , className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500',});
+          toast({ title: 'Login', description: 'You need to log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
           setTimeout(() => {
             window.location.href = '/Login';
           }, 2000); // Wait 2 seconds before redirecting
-          return [];
+          return;
         }
         if (!res.ok) throw new Error("Failed to fetch GPA");
         const result = await res.json();
@@ -109,10 +125,8 @@ const StudentProfile = () => {
       }
     };
 
-    fetchStudent();
-    fetchGrades();
     fetchGPA();
-  }, [id]);
+  }, [student]); // This useEffect depends on the 'student' object
 
   useEffect(() => {
     if (grades.length > 0) {
@@ -153,7 +167,7 @@ const StudentProfile = () => {
     grade => grade.course.semester === CURRENT_TARGET_SEMESTER
   );
 
-  const displayGPA = gpa ? gpa.GPA : '...';
+  const displayGPA = gpa ? parseFloat(gpa.GPA).toFixed(2) : '...'; // Ensure GPA is formatted consistently
 
   // Calculate total credits considering only courses with a grade of 1.0 or higher
   const calculatedTotalCredits = grades.reduce((acc, grade) => {
@@ -172,9 +186,9 @@ const StudentProfile = () => {
   }).length;
 
   const studentProfile = {
-    id: student.studentId,
+    id: student.studentId, // Ensure this is the numerical student ID
     name: student.name,
-    department: student.department,
+    department: student.department ? student.department.name : 'N/A',
     gpa: gpa ? gpa.GPA : '...',
     yearLevel: student.yearLevel,
     totalCredits: student.totalCredits || calculatedTotalCredits,
@@ -225,7 +239,9 @@ const StudentProfile = () => {
                   <GraduationCap className="h-10 w-10" />
                 </div>
                 <h3 className="text-xl font-semibold text-blue-900">{student.name}</h3>
-                <p className="text-blue-600">{student.department}</p>
+                <p className="text-blue-600">
+                  {student.department ? student.department.name : 'N/A'}
+                </p>
               </div>
 
               <Separator />

@@ -8,6 +8,8 @@ const course = require('./routes/course')
 const grade = require('./routes/grade')
 const user = require('./routes/user')
 const Notify = require('./models/Notifications');
+const Department = require('./models/Department');
+const { authMiddleware } = require('./middleware/auth');
 
 const FRONTEND_ORIGIN = 'http://localhost:8080';
 
@@ -31,6 +33,24 @@ app.get('/notify', (req, res) => {
     })
     .catch(err => {
         res.status(500).json({ message: 'somthing went wrong' + err });
+    })
+})
+app.post('/dept', (req, res) => {
+    new Department(req.body).save()
+    .then(data=>{
+        res.json(data);
+    })
+    .catch(err=>{
+        res.status(505).json({error : err});
+    })
+})
+app.get('/dept',authMiddleware ,(req, res) => {
+    Department.find({category : req.user.departmentCategory})
+    .then(data=>{
+        res.json(data);
+    })
+    .catch(err=>{
+        res.status(505).json({error : err});
     })
 })
 

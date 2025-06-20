@@ -1,8 +1,12 @@
 const Course = require('../models/Course ');
+const Department = require('../models/Department');
 const Notify = require('../models/Notifications');
 
 exports.getAllCourses = async (req, res) => {
-    await Course.find()
+    const departments = await Department.find({ category: req.user.departmentCategory });
+    const departmentId = departments.map(dep => dep._id);
+    await Course.find({ department: { $in: departmentId } })
+        .populate('department', 'name code category')
         .then(data => {
             res.json({ data });
         })

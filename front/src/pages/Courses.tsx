@@ -12,6 +12,25 @@ import { toast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const API_BASE_URL = 'http://localhost:3000/courses';
+const DEPT_API_URL = 'http://localhost:3000/dept'; // New API URL for departments
+
+interface Course {
+  id: string;
+  name: string;
+  instructor: string;
+  department: string; // This will store the department name after transformation for display
+  credits: number;
+  schedule: string;
+  capacity: number;
+  enrolled: number;
+  room: string;
+  semester: string;
+}
+
+interface Department {
+  _id: string;
+  name: string;
+}
 
 const Courses = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,32 +42,24 @@ const Courses = () => {
     courseId: '',
     creditHours: 3,
     instructor: '',
-    department: 'Computer Science',
+    department: '', // Initialize as empty, will be set from fetched departments IDs
     schedule: 'Mon/Wed 10:00 AM - 11:30 AM',
     capacity: 30,
     semester: "Spring 2025",
     enrolled: 0,
     room: ''
   });
-  const [currentCourse, setCurrentCourse] = useState(null);
+  const [currentCourse, setCurrentCourse] = useState<Course | null>(null);
   const [activeTab, setActiveTab] = useState('all');
-  const [courses, setCourses] = useState([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]); // Store both _id and name
   const [isLoading, setIsLoading] = useState(true);
+  const [areDepartmentsLoading, setAreDepartmentsLoading] = useState(true);
 
   // Define the target semester for filtering and validation
   const TARGET_SEMESTER = "Spring 2025";
 
-  // Sample departments
-  const departments = [
-    'Computer Science',
-    'Engineering',
-    'Business',
-    'Arts',
-    'Science',
-    'Medicine'
-  ];
-
-  // Fetch courses on component mount
+  // Fetch courses and departments on component mount
   useEffect(() => {
     const fetchCourses = async () => {
       try {
@@ -56,36 +67,35 @@ const Courses = () => {
           credentials: 'include',
         });
         if (response.status === 401) {
-          toast({ title: 'Login', description: 'You need log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
+          toast({ title: 'Login', description: 'You need to log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
           setTimeout(() => {
             window.location.href = '/Login';
-          }, 2000); // Wait 2 seconds before redirecting
-          return [];
+          }, 2000);
+          return;
         }
         if (!response.ok) {
           throw new Error('Failed to fetch courses');
         }
         const responseData = await response.json();
-        // Transform the API data and filter for Spring 2025 immediately
         const transformedCourses = responseData.data
-          .filter(course => course.semester === TARGET_SEMESTER) // <--- ADDED THIS FILTER HERE
-          .map(course => ({
+          .filter((course: any) => course.semester === TARGET_SEMESTER)
+          .map((course: any) => ({
             id: course.courseId,
             name: course.name,
             instructor: course.instructor,
-            department: course.department || 'Computer Science',
+            department: course.department ? course.department.name : 'Unknown', // Access department.name for display
             credits: course.creditHours,
             schedule: course.schedule || 'Mon/Wed 10:00 AM - 11:30 AM',
             capacity: course.capacity || 30,
             enrolled: course.enrolled || 0,
             room: course.room || '',
-            semester: course.semester || "Fall 2024" // Will mostly be Spring 2025 due to filter
+            semester: course.semester || "Fall 2024"
           }));
         setCourses(transformedCourses);
-      } catch (error) {
+      } catch (error: any) {
         toast({
           title: "Error",
-          description: "Failed to load courses",
+          description: "Failed to load courses: " + error.message,
           variant: "destructive"
         });
       } finally {
@@ -93,31 +103,63 @@ const Courses = () => {
       }
     };
 
+    const fetchDepartments = async () => {
+      try {
+        const response = await fetch(DEPT_API_URL, {
+          credentials: 'include'
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch departments');
+        }
+        const responseData = await response.json();
+        // Store both _id and name for departments
+        const fetchedDepartments: Department[] = responseData.map((dept: any) => ({ _id: dept._id, name: dept.name }));
+        setDepartments(fetchedDepartments);
+        // Set the default newCourse.department to the _id of the first fetched department if available
+        if (fetchedDepartments.length > 0) {
+          setNewCourse(prev => ({ ...prev, department: fetchedDepartments[0]._id }));
+        }
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: "Failed to load departments: " + error.message,
+          variant: "destructive"
+        });
+      } finally {
+        setAreDepartmentsLoading(false);
+      }
+    };
+
     fetchCourses();
+    fetchDepartments();
   }, []);
 
   // Filter courses based on search term, department, and tab
   const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = searchTerm === '' ||
+      course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.instructor.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDepartment = filterDepartment === 'all' || course.department === filterDepartment;
+    const matchesDepartment = filterDepartment === 'all' || course.department === getDepartmentName(filterDepartment); // Compare with name for filtering
     const matchesTab =
       activeTab === 'all' ? true :
         activeTab === 'available' ? course.enrolled < course.capacity :
           activeTab === 'full' ? course.enrolled >= course.capacity :
             true;
 
-    // The semester filter is now applied directly when fetching data,
-    // so no need to add it here again for the display filter.
     return matchesSearch && matchesDepartment && matchesTab;
   });
+
+  const getDepartmentName = (deptId: string) => {
+    const department = departments.find(d => d._id === deptId);
+    return department ? department.name : 'Unknown Department';
+  };
 
   const handleAddCourse = async () => {
     if (newCourse.semester !== TARGET_SEMESTER) {
       toast({
         title: "Validation Error",
-        description: `New courses must be scheduled for ${TARGET_SEルメSTER}.`,
+        description: `New courses must be scheduled for ${TARGET_SEMESTER}.`,
         variant: "destructive"
       });
       return;
@@ -130,14 +172,17 @@ const Courses = () => {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(newCourse),
+        body: JSON.stringify({
+          ...newCourse,
+          department: newCourse.department // This will now be the MongoDB ID
+        }),
       });
       if (response.status === 401) {
-        toast({ title: 'Login', description: 'You need log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
+        toast({ title: 'Login', description: 'You need to log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
         setTimeout(() => {
           window.location.href = '/Login';
-        }, 2000); // Wait 2 seconds before redirecting
-        return [];
+        }, 2000);
+        return;
       }
 
       if (!response.ok) {
@@ -151,7 +196,8 @@ const Courses = () => {
         id: addedCourse.courseId,
         name: addedCourse.name,
         instructor: addedCourse.instructor,
-        department: addedCourse.department,
+        // This is the key change: ensure department is the name for display
+        department: getDepartmentName(addedCourse.department),
         credits: addedCourse.creditHours,
         schedule: addedCourse.schedule,
         capacity: addedCourse.capacity,
@@ -160,8 +206,7 @@ const Courses = () => {
         semester: addedCourse.semester
       };
 
-      // Only add to state if it's for the target semester
-      if (transformedAddedCourse.semester === TARGET_SEMESTER) { // <--- ADDED THIS CHECK
+      if (transformedAddedCourse.semester === TARGET_SEMESTER) {
         setCourses([...courses, transformedAddedCourse]);
       }
 
@@ -170,7 +215,7 @@ const Courses = () => {
         courseId: '',
         creditHours: 3,
         instructor: '',
-        department: 'Computer Science',
+        department: departments.length > 0 ? departments[0]._id : '', // Reset to first fetched department ID
         schedule: 'Mon/Wed 10:00 AM - 11:30 AM',
         capacity: 30,
         semester: TARGET_SEMESTER,
@@ -183,7 +228,7 @@ const Courses = () => {
         title: "Success",
         description: `Course ${transformedAddedCourse.id} has been added`,
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
         description: `Failed to add course: ${error.message}`,
@@ -193,8 +238,12 @@ const Courses = () => {
   };
 
   const handleEditCourse = async () => {
-    // We already have validation that only TARGET_SEMESTER courses can be edited,
-    // so currentCourse.semester should be TARGET_SEMESTER if this function is reached.
+    if (!currentCourse) return;
+
+    // Find the department ID based on the currentCourse.department name for sending to backend
+    const departmentToSave = departments.find(d => d.name === currentCourse.department);
+    const departmentIdToSend = departmentToSave ? departmentToSave._id : '';
+
     if (currentCourse.semester !== TARGET_SEMESTER) {
       toast({
         title: "Validation Error",
@@ -209,7 +258,7 @@ const Courses = () => {
         courseId: currentCourse.id,
         name: currentCourse.name,
         instructor: currentCourse.instructor,
-        department: currentCourse.department,
+        department: departmentIdToSend, // Send the MongoDB ID
         creditHours: currentCourse.credits,
         schedule: currentCourse.schedule,
         capacity: currentCourse.capacity,
@@ -227,11 +276,11 @@ const Courses = () => {
         body: JSON.stringify(courseToUpdate),
       });
       if (response.status === 401) {
-        toast({ title: 'Login', description: 'You need log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
+        toast({ title: 'Login', description: 'You need to log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
         setTimeout(() => {
           window.location.href = '/Login';
-        }, 2000); // Wait 2 seconds before redirecting
-        return [];
+        }, 2000);
+        return;
       }
 
       if (!response.ok) {
@@ -245,7 +294,8 @@ const Courses = () => {
         id: updatedCourse.data.courseId,
         name: updatedCourse.data.name,
         instructor: updatedCourse.data.instructor,
-        department: updatedCourse.data.department,
+        // This is the key change: ensure department is the name for display
+        department: getDepartmentName(updatedCourse.data.department),
         credits: updatedCourse.data.creditHours,
         schedule: updatedCourse.data.schedule,
         capacity: updatedCourse.data.capacity,
@@ -254,14 +304,11 @@ const Courses = () => {
         semester: updatedCourse.data.semester
       };
 
-      // Since we are only displaying Spring 2025 courses,
-      // if a course's semester somehow changes to something else,
-      // we should remove it from the displayed list.
       setCourses(courses.map(course =>
         course.id === transformedCourse.id ?
-          (transformedCourse.semester === TARGET_SEMESTER ? transformedCourse : null) : // <--- MODIFIED HERE
+          (transformedCourse.semester === TARGET_SEMESTER ? transformedCourse : null) :
           course
-      ).filter(Boolean)); // <--- Filter out any nulls
+      ).filter(Boolean));
 
       setIsEditDialogOpen(false);
       setCurrentCourse(null);
@@ -270,7 +317,7 @@ const Courses = () => {
         title: "Success",
         description: "Course information updated",
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
         description: `Failed to update course: ${error.message}`,
@@ -279,7 +326,7 @@ const Courses = () => {
     }
   };
 
-  const handleDeleteCourse = async (id) => {
+  const handleDeleteCourse = async (id: string) => {
     const courseToDelete = courses.find(course => course.id === id);
     if (courseToDelete && courseToDelete.semester !== TARGET_SEMESTER) {
       toast({
@@ -298,11 +345,11 @@ const Courses = () => {
         });
 
         if (response.status === 401) {
-          toast({ title: 'Login', description: 'You need log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
+          toast({ title: 'Login', description: 'You need to log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500', });
           setTimeout(() => {
             window.location.href = '/Login';
-          }, 2000); // Wait 2 seconds before redirecting
-          return [];
+          }, 2000);
+          return;
         }
 
         if (!response.ok) {
@@ -317,7 +364,7 @@ const Courses = () => {
           description: "Course has been removed",
           variant: "destructive"
         });
-      } catch (error) {
+      } catch (error: any) {
         toast({
           title: "Error",
           description: `Failed to delete course: ${error.message}`,
@@ -327,12 +374,14 @@ const Courses = () => {
     }
   };
 
-  const openEditDialog = (course) => {
+  const openEditDialog = (course: Course) => {
+    // When opening edit dialog, currentCourse.department should be the name for the select input,
+    // but when saving, we need to convert it back to ID.
     setCurrentCourse({ ...course });
     setIsEditDialogOpen(true);
   };
 
-  const getAvailabilityBadge = (course) => {
+  const getAvailabilityBadge = (course: Course) => {
     const availableSeats = course.capacity - course.enrolled;
     if (availableSeats <= 0) {
       return <Badge className="bg-red-100 text-red-800 border-red-300">Full</Badge>;
@@ -343,7 +392,7 @@ const Courses = () => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || areDepartmentsLoading) {
     return (
       <div className="p-6 flex justify-center items-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -357,7 +406,7 @@ const Courses = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-blue-900">Course Management</h1>
-          <p className="text-blue-700 mt-1">Manage university course offerings for {TARGET_SEMESTER}</p> {/* <--- Updated description */}
+          <p className="text-blue-700 mt-1">Manage university course offerings for {TARGET_SEMESTER}</p>
         </div>
         <div>
           <Button
@@ -392,8 +441,8 @@ const Courses = () => {
                 <SelectContent>
                   <SelectItem value="all">All Departments</SelectItem>
                   {departments.map(dept => (
-                    <SelectItem key={dept} value={dept}>
-                      {dept}
+                    <SelectItem key={dept._id} value={dept._id}> {/* Use _id as value */}
+                      {dept.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -408,9 +457,9 @@ const Courses = () => {
         <CardHeader className="pb-2 border-b border-slate-100">
           <div className="flex flex-col sm:flex-row justify-between gap-4">
             <div>
-              <CardTitle className="text-blue-900 text-xl">Course Directory for {TARGET_SEMESTER}</CardTitle> {/* <--- Updated title */}
+              <CardTitle className="text-blue-900 text-xl">Course Directory for {TARGET_SEMESTER}</CardTitle>
               <CardDescription>
-                Showing {filteredCourses.length} of {courses.length} total courses for {TARGET_SEMESTER} {/* <--- Updated description */}
+                Showing {filteredCourses.length} of {courses.length} total courses for {TARGET_SEMESTER}
               </CardDescription>
             </div>
             <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
@@ -470,7 +519,7 @@ const Courses = () => {
                         <div className="w-full bg-blue-100 rounded-full h-1.5 mt-1.5">
                           <div
                             className={`${course.enrolled / course.capacity >= 0.9 ? 'bg-red-500' :
-                                course.enrolled / course.capacity >= 0.7 ? 'bg-amber-500' : 'bg-green-500'
+                              course.enrolled / course.capacity >= 0.7 ? 'bg-amber-500' : 'bg-green-500'
                               } h-1.5 rounded-full`}
                             style={{ width: `${Math.min(100, (course.enrolled / course.capacity) * 100)}%` }}
                           ></div>
@@ -572,8 +621,8 @@ const Courses = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {departments.map(dept => (
-                      <SelectItem key={dept} value={dept}>
-                        {dept}
+                      <SelectItem key={dept._id} value={dept._id}> {/* Use _id as value */}
+                        {dept.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -687,16 +736,21 @@ const Courses = () => {
                 <div className="grid gap-2">
                   <label htmlFor="edit-department" className="text-sm font-medium">Department</label>
                   <Select
-                    value={currentCourse.department}
-                    onValueChange={(value) => setCurrentCourse({ ...currentCourse, department: value })}
+                    value={
+                      departments.find(d => d.name === currentCourse.department)?._id || ''
+                    } // Find the ID for the currently displayed name
+                    onValueChange={(value) => {
+                      const selectedDept = departments.find(d => d._id === value);
+                      setCurrentCourse({ ...currentCourse, department: selectedDept ? selectedDept.name : '' }); // Store name for display
+                    }}
                   >
                     <SelectTrigger id="edit-department">
                       <SelectValue placeholder="Select department" />
                     </SelectTrigger>
                     <SelectContent>
                       {departments.map(dept => (
-                        <SelectItem key={dept} value={dept}>
-                          {dept}
+                        <SelectItem key={dept._id} value={dept._id}> {/* Use _id as value */}
+                          {dept.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

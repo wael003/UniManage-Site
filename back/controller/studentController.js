@@ -1,8 +1,14 @@
 const Student = require('../models/Student');
+const Department = require('../models/Department');
 const Notify = require('../models/Notifications');
 
 exports.getAllStudents = async (req, res) => {
-    await Student.find().then(data => {
+    const departments = await Department.find({ category: req.user.departmentCategory });
+    const departmentId = departments.map(dep => dep._id);
+
+    await Student.find({ department: { $in: departmentId } })
+    .populate('department', 'name code category')
+    .then(data => {
         res.json({ data });
     })
         .catch(err => {
@@ -13,7 +19,9 @@ exports.getAllStudents = async (req, res) => {
 
 
 exports.getStudentByID = async (req, res) => {
-    await Student.findById(req.params.id).then(data => {
+    await Student.findById(req.params.id)
+    .populate('department', 'name code category')
+    .then(data => {
         res.json({ data });
     })
         .catch(err => {

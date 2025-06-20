@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Plus, Edit, Trash, BookOpen, Mail, User, Briefcase, Filter, Eye } from 'lucide-react';
-// import { Search, Plus, Edit, Trash, BookOpen, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,17 +12,46 @@ import { toast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import ContactModal from '@/components/ContactModal';
 
+// Function to fetch departments from the API
+const fetchDepartments = async () => {
+  try {
+    const res = await fetch('http://localhost:3000/dept', {
+      credentials: 'include'
+    });
+
+    if (res.status === 401) {
+      toast({ title: 'Login Required', description: 'You need to log in to access department data.', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500' });
+      setTimeout(() => {
+        window.location.href = '/Login';
+      }, 2000);
+      return [];
+    }
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || 'Failed to fetch departments');
+    }
+
+    const result = await res.json();
+    return result; // Assuming the API directly returns the array of departments
+  } catch (error: any) {
+    console.error('Error fetching departments:', error);
+    toast({ title: 'Error', description: error.message || 'Failed to fetch departments.' });
+    return [];
+  }
+};
+
 const fetchStudents = async () => {
   const res = await fetch('http://localhost:3000/api/students', {
     credentials: 'include'
   });
   if (res.status === 401) {
-          toast({ title: 'Login', description: 'You need log in to authorize!' , className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500',});
-          setTimeout(() => {
-            window.location.href = '/Login';
-          }, 2000); // Wait 2 seconds before redirecting
-          return [];
-        }
+    toast({ title: 'Login', description: 'You need to log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500' });
+    setTimeout(() => {
+      window.location.href = '/Login';
+    }, 2000); // Wait 2 seconds before redirecting
+    return [];
+  }
   if (!res.ok) throw new Error('Failed to fetch students');
   const result = await res.json();
   return result.data;
@@ -35,12 +63,12 @@ const deleteStudent = async (id: string) => {
     credentials: 'include',
   });
   if (res.status === 401) {
-          toast({ title: 'Login', description: 'You need log in to authorize!' , className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500',});
-          setTimeout(() => {
-            window.location.href = '/Login';
-          }, 2000); // Wait 2 seconds before redirecting
-          return [];
-        }
+    toast({ title: 'Login', description: 'You need to log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500' });
+    setTimeout(() => {
+      window.location.href = '/Login';
+    }, 2000); // Wait 2 seconds before redirecting
+    return [];
+  }
   if (!res.ok) throw new Error('Failed to delete student');
   return res.json();
 };
@@ -53,12 +81,12 @@ const addStudent = async (student: any) => {
     body: JSON.stringify(student),
   });
   if (res.status === 401) {
-          toast({ title: 'Login', description: 'You need log in to authorize!' , className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500',});
-          setTimeout(() => {
-            window.location.href = '/Login';
-          }, 2000); // Wait 2 seconds before redirecting
-          return [];
-        }
+    toast({ title: 'Login', description: 'You need to log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500' });
+    setTimeout(() => {
+      window.location.href = '/Login';
+    }, 2000); // Wait 2 seconds before redirecting
+    return [];
+  }
   if (!res.ok) throw new Error('Failed to add student');
   return res.json();
 };
@@ -71,12 +99,12 @@ const updateStudent = async (student: any) => {
     body: JSON.stringify(student),
   });
   if (res.status === 401) {
-          toast({ title: 'Login', description: 'You need log in to authorize!' , className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500',});
-          setTimeout(() => {
-            window.location.href = '/Login';
-          }, 2000); // Wait 2 seconds before redirecting
-          return [];
-        }
+    toast({ title: 'Login', description: 'You need to log in to authorize!', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500' });
+    setTimeout(() => {
+      window.location.href = '/Login';
+    }, 2000); // Wait 2 seconds before redirecting
+    return [];
+  }
   if (!res.ok) throw new Error('Failed to update student');
   return res.json();
 };
@@ -91,7 +119,7 @@ const Students = () => {
   const [newStudent, setNewStudent] = useState({
     name: '',
     email: '',
-    department: 'Computer Science',
+    department: '', // This will hold the department name initially
     phone: '',
     address: '',
     enrollmentDate: '',
@@ -107,6 +135,11 @@ const Students = () => {
   const { data: students = [], error, isLoading } = useQuery({
     queryKey: ['students'],
     queryFn: fetchStudents,
+  });
+
+  const { data: departments = [], isLoading: isLoadingDepartments } = useQuery({
+    queryKey: ['departments'],
+    queryFn: fetchDepartments,
   });
 
   const deleteMutation = useMutation({
@@ -133,7 +166,7 @@ const Students = () => {
       setNewStudent({
         name: '',
         email: '',
-        department: 'Computer Science',
+        department: '',
         phone: '',
         address: '',
         enrollmentDate: '',
@@ -166,12 +199,12 @@ const Students = () => {
         credentials: 'include',
       });
       if (res.status === 401) {
-       toast({ title: 'Login', description: 'You need log in to authorize!' });
-      setTimeout(() => {
-        window.location.href = '/Login';
-      }, 2000); // Wait 2 seconds before redirecting
-      return [];
-    }
+        toast({ title: 'Login', description: 'You need to log in to authorize!' });
+        setTimeout(() => {
+          window.location.href = '/Login';
+        }, 2000); // Wait 2 seconds before redirecting
+        return [];
+      }
       if (!res.ok) throw new Error('Failed to fetch grades');
       const data = await res.json();
       return data.data || [];
@@ -221,14 +254,14 @@ const Students = () => {
     }
   }, [students]);
 
-  const departments = ['Computer Science', 'Engineering', 'Business', 'Arts', 'Science', 'Medicine'];
-
   const filteredStudents = students.filter((student: any) => {
     const matchesSearch =
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.studentId.toString().includes(searchTerm.toLowerCase());
-    const matchesDepartment = filterDepartment === 'all' || student.department === filterDepartment;
+    // Filter by department name
+    const matchesDepartment =
+      filterDepartment === 'all' || student.department?.name === filterDepartment;
     return matchesSearch && matchesDepartment;
   });
 
@@ -239,24 +272,60 @@ const Students = () => {
   };
 
   const handleAddStudent = () => {
-    addMutation.mutate(newStudent);
+    // Find the department ID based on the selected department name
+    const selectedDepartment = departments.find(
+      (dept: any) => dept.name === newStudent.department
+    );
+    if (selectedDepartment) {
+      const studentDataToSend = {
+        ...newStudent,
+        department: selectedDepartment._id, // Send the department's _id
+      };
+      addMutation.mutate(studentDataToSend);
+    } else {
+      toast({ title: 'Error', description: 'Selected department not found.' });
+    }
   };
 
   const handleEditStudent = () => {
     if (currentStudent) {
-      updateMutation.mutate(currentStudent);
+      // Find the department ID based on the selected department name
+      const selectedDepartment = departments.find(
+        (dept: any) => dept.name === currentStudent.department
+      );
+      if (selectedDepartment) {
+        const studentDataToSend = {
+          ...currentStudent,
+          department: selectedDepartment._id, // Send the department's _id
+        };
+        updateMutation.mutate(studentDataToSend);
+      } else {
+        toast({ title: 'Error', description: 'Selected department not found.' });
+      }
     }
   };
 
   const openEditDialog = (student: any) => {
-    setCurrentStudent(student);
+    setCurrentStudent({
+      ...student,
+      // When opening the dialog, display the department name
+      department: student.department ? student.department.name : '',
+      enrollmentDate: student.enrollmentDate ? new Date(student.enrollmentDate).toISOString().split('T')[0] : '',
+      entryDate: student.entryDate ? new Date(student.entryDate).toISOString().split('T')[0] : '',
+      expectedGraduation: student.expectedGraduation ? new Date(student.expectedGraduation).toISOString().split('T')[0] : '',
+    });
     setIsEditDialogOpen(true);
   };
-  const openContactModal = (student) => {
-    setSelectedStudent(student);
+
+  const openContactModal = (student: any) => {
+    setSelectedStudent({
+      ...student,
+      department: student.department ? student.department.name : 'N/A' // Store just the name
+    });
     setIsContactModalOpen(true);
   };
-  if (isLoading) return <p className="p-6 text-blue-800">Loading...</p>;
+
+  if (isLoading || isLoadingDepartments) return <p className="p-6 text-blue-800">Loading...</p>;
   if (error) return <p className="p-6 text-red-600">Failed to load students.</p>;
 
   return (
@@ -291,7 +360,7 @@ const Students = () => {
                 <SelectContent>
                   <SelectItem value="all">All Departments</SelectItem>
                   {departments.map((dept) => (
-                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                    <SelectItem key={dept._id} value={dept.name}>{dept.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -316,7 +385,6 @@ const Students = () => {
                   <TableHead className="text-blue-900">Name</TableHead>
                   <TableHead className="text-blue-900">Email</TableHead>
                   <TableHead className="text-blue-900">Department</TableHead>
-
                   <TableHead className="text-blue-900">Courses</TableHead>
                   <TableHead className="text-blue-900">GPA</TableHead>
                   <TableHead className="text-blue-900 text-right">Actions</TableHead>
@@ -350,7 +418,7 @@ const Students = () => {
                       <TableCell>
                         <div className="flex items-center">
                           <Briefcase className="h-4 w-4 mr-2 text-blue-500" />
-                          {student.department}
+                          {student.department ? student.department.name : 'N/A'}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -500,8 +568,8 @@ const Students = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {departments.map((dept) => (
-                    <SelectItem key={dept} value={dept}>
-                      {dept}
+                    <SelectItem key={dept._id} value={dept.name}>
+                      {dept.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -558,7 +626,7 @@ const Students = () => {
             </Button>
             <Button
               onClick={handleAddStudent}
-              disabled={addMutation.isPending || !newStudent.name || !newStudent.email}
+              disabled={addMutation.isPending || !newStudent.name || !newStudent.email || !newStudent.department}
             >
               Add Student
             </Button>
@@ -633,16 +701,18 @@ const Students = () => {
                 Department
               </label>
               <Select
-                value={currentStudent?.department || 'Computer Science'}
-                onValueChange={(value) => setCurrentStudent({ ...currentStudent, department: value })}
+                value={currentStudent?.department || ''} // Use the department name for display
+                onValueChange={(value) =>
+                  setCurrentStudent({ ...currentStudent, department: value }) // Store the selected department name
+                }
               >
                 <SelectTrigger id="edit-department">
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
                 <SelectContent>
                   {departments.map((dept) => (
-                    <SelectItem key={dept} value={dept}>
-                      {dept}
+                    <SelectItem key={dept._id} value={dept.name}>
+                      {dept.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -713,7 +783,7 @@ const Students = () => {
             </Button>
             <Button
               onClick={handleEditStudent}
-              disabled={updateMutation.isPending || !currentStudent?.name || !currentStudent?.email}
+              disabled={updateMutation.isPending || !currentStudent?.name || !currentStudent?.email || !currentStudent?.department}
             >
               Save Changes
             </Button>

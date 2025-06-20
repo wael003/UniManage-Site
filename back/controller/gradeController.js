@@ -1,6 +1,7 @@
 const Grade = require('../models/Grade ');
 const Student = require('../models/Student');
 const Course = require('../models/Course ');
+const Department = require('../models/Department');
 const Notify = require('../models/Notifications');
 
 
@@ -20,18 +21,60 @@ exports.getStudentsGrade = (req, res) => {
 
 
 exports.getGrades = (req, res) => {
-    Grade.find()
-        .populate('student', 'name studentId')
-        .populate('course', 'name semester courseId instructor')
+    Department.find({ category: req.user.departmentCategory })
+        .then((departments) => {
+            const departmentIds = departments.map(dep => dep._id);
+
+            return Grade.aggregate([
+                {
+                    $lookup: {
+                        from: 'students',
+                        localField: 'student',
+                        foreignField: '_id',
+                        as: 'student'
+                    }
+                },
+                { $unwind: '$student' },
+                {
+                    $match: {
+                        'student.department': { $in: departmentIds }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'courses',
+                        localField: 'course',
+                        foreignField: '_id',
+                        as: 'course'
+                    }
+                },
+                { $unwind: '$course' },
+                {
+                    $project: {
+                        grade: 1,
+                        semester: 1,
+                        student: {
+                            name: '$student.name',
+                            studentId: '$student.studentId'
+                        },
+                        course: {
+                            name: '$course.name',
+                            courseId: '$course.courseId',
+                            instructor: '$course.instructor',
+                            semester: '$course.semester'
+                        }
+                    }
+                }
+            ]);
+        })
         .then((data) => {
-            if (!data) res.status(401).json({ message: 'data not found' })
-            res.json({ data })
+            res.json({ data });
         })
         .catch((err) => {
-            res.status(500).json({ err });
-        })
+            res.status(500).json({ message: 'Something went wrong', error: err.message });
+        });
+};
 
-}
 
 exports.addGrade = async (req, res) => {
     const { student, course, grade } = req.body;
@@ -132,35 +175,47 @@ exports.deleteGrade = (req, res) => {
 }
 
 
+const mongoose = require('mongoose'); // make sure it's imported at the top
+
 exports.calculateGrade = (req, res) => {
-    Grade.find({ student: req.params.studentId })
-        .populate('course', 'name semester courseId instructor creditHours')
-        .populate('student', 'name studentId')
-        .then(data => {
-            if (!data || data.length === 0) {
-                return res.status(404).json({ message: 'No grades found for this student.' });
+    // Step 1: Find the student by studentId (which is a custom field)
+    Student.findOne({ studentId: parseInt(req.params.studentId) })
+        .then(student => {
+            if (!student) {
+                return res.status(404).json({ message: 'Student not found.' });
             }
 
-            let totalPoints = 0;
-            let totalHours = 0;
+            // Step 2: Use the real ObjectId in Grade query
+            return Grade.find({ student: student._id })
+                .populate('course', 'name semester courseId instructor creditHours')
+                .populate('student', 'name studentId')
+                .then(data => {
+                    if (!data || data.length === 0) {
+                        return res.status(404).json({ message: 'No grades found for this student.' });
+                    }
 
-            data.forEach(g => {
-                const credit = g.course.creditHours || 0;
-                totalPoints += g.grade * credit;
-                totalHours += credit;
-            });
+                    let totalPoints = 0;
+                    let totalHours = 0;
 
-            const gpa = totalHours > 0 ? totalPoints / totalHours : 0;
+                    data.forEach(g => {
+                        const credit = g.course.creditHours || 0;
+                        totalPoints += g.grade * credit;
+                        totalHours += credit;
+                    });
 
-            res.json({
-                student: data[0].student.name,
-                studentId: data[0].student.studentId,
-                GPA: gpa.toFixed(2),
-            });
+                    const gpa = totalHours > 0 ? totalPoints / totalHours : 0;
+
+                    res.json({
+                        student: data[0].student.name,
+                        studentId: data[0].student.studentId,
+                        GPA: gpa.toFixed(2),
+                    });
+                });
         })
         .catch(err => {
             res.status(500).json({ error: err.message });
         });
 };
+
 
 
