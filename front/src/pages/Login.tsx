@@ -49,7 +49,7 @@ const Login = () => {
         } catch (jsonError) {
           // Fallback if the response is not valid JSON (e.g., plain text error)
           console.error("Error parsing error response:", jsonError);
-          errorMessage = `Login failed: ${response.statusText || "Unknown error."}`;
+          errorMessage = `Login failed: ${errorMessage || "Unknown error."}`;
         }
 
         toast({

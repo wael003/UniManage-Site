@@ -7,6 +7,7 @@ const student = require('./routes/student')
 const course = require('./routes/course')
 const grade = require('./routes/grade')
 const user = require('./routes/user')
+const email = require('./routes/email')
 const Notify = require('./models/Notifications');
 const Department = require('./models/Department');
 const { authMiddleware } = require('./middleware/auth');
@@ -26,6 +27,7 @@ app.use('/', user);
 app.use('/api/students', student);
 app.use('/courses', course)
 app.use('/grades', grade)
+app.use('/email', email)
 app.get('/notify', (req, res) => {
     Notify.find().then(data => {
         

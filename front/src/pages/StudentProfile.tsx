@@ -261,11 +261,15 @@ const StudentProfile = () => {
                 </div>
                 <div className="flex items-center">
                   <Calendar className="h-4 w-4 mr-3 text-amber-500" />
-                  <span className="text-sm">Entry: {student.entryDate || "N/A"}</span>
+                  <span className="text-sm">
+                    Entry: {student.entryDate ? new Date(student.entryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) : "N/A"}
+                  </span>
                 </div>
                 <div className="flex items-center">
                   <GraduationCap className="h-4 w-4 mr-3 text-amber-500" />
-                  <span className="text-sm">Expected Graduation: {student.expectedGraduation || "N/A"}</span>
+                  <span className="text-sm">
+                    Expected Graduation: {student.expectedGraduation ? new Date(student.expectedGraduation).toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) : "N/A"}
+                  </span>
                 </div>
               </div>
 

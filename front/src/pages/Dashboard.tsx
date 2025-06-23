@@ -258,10 +258,11 @@ const Dashboard = () => {
 
   const handleViewAllNotifications = (e) => {
     e.preventDefault();
-    setDisplayCount(prevCount => prevCount === 4 ? notifications.length : 4); // Display all or revert to 4
+    setDisplayCount(prevCount => prevCount === 4 ? 10 : 4); // Toggle between 4 and 10
   };
 
-  const notificationsToDisplay = notifications.slice(0, displayCount);
+  const notificationsToDisplay = notifications.slice(-displayCount);
+
 
   return (
     <div className="p-6 space-y-6 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
@@ -492,17 +493,20 @@ const Dashboard = () => {
                 </div>
               ))}
               {/* Only show "View all notifications" if there are more notifications than currently displayed and displayCount is less than total notifications */}
-              {notifications.length > displayCount && (
+              {notifications.length > 4 && (
                 <div className="text-center">
-                  <a href="#" onClick={handleViewAllNotifications} className="text-blue-600 text-sm hover:underline">View all notifications</a>
+                  {displayCount <= 4 ? (
+                    <a href="#" onClick={handleViewAllNotifications} className="text-blue-600 text-sm hover:underline">
+                      View all notifications
+                    </a>
+                  ) : (
+                    <a href="#" onClick={handleViewAllNotifications} className="text-blue-600 text-sm hover:underline">
+                      Show less
+                    </a>
+                  )}
                 </div>
               )}
-              {/* Only show "Show less" if we're currently displaying more than 4 notifications (meaning "View all" was clicked) */}
-              {displayCount > 4 && (
-                <div className="text-center">
-                  <a href="#" onClick={handleViewAllNotifications} className="text-blue-600 text-sm hover:underline">Show less</a>
-                </div>
-              )}
+
             </CardContent>
           </Card>
 

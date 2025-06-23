@@ -143,7 +143,10 @@ exports.updateGrade = async (req, res) => {
         await new Notify({
             title: "Grade Updated",
             description: `Grade for student ${updatedGrade.student.name} in course ${updatedGrade.course.name} has been updated to ${updatedGrade.grade}.`
-        }).save();
+        }).save()
+        .then(()=>{
+            console.log("notify saved")
+        });
 
         res.json({ message: 'Grade info updated successfully!', data: updatedGrade });
 
