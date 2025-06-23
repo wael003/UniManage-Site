@@ -18,7 +18,7 @@ const app = express();
 
 app.use(express.json());
 app.use(cors({
-  origin: 'http://localhost:8080', 
+  origin: FRONTEND_ORIGIN, 
   credentials: true
 }));
 app.use(cookieParser());
