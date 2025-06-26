@@ -17,6 +17,9 @@ import {
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
+// Ensure socket.io-client is imported
+import { io } from 'socket.io-client';
+
 const Dashboard = () => {
   const [totalStudents, setTotalStudents] = useState(0);
   const [totalCourses, setTotalCourses] = useState(0);
@@ -30,9 +33,13 @@ const Dashboard = () => {
   const [notifications, setNotifications] = useState([]);
   const [displayCount, setDisplayCount] = useState(4); // State to control the number of notifications displayed
   const [semesterGradesData, setSemesterGradesData] = useState([]); // New state for semester-specific grades
+  const [departmentCategory, setDepartmentCategory] = useState(''); // New state for department category
 
   const TARGET_SEMESTER = 'Spring 2025'; // Define the target semester here
   const PREVIOUS_SEMESTER = 'Fall 2024'; // Define the previous semester here
+
+  // Initialize socket.io client
+  const socket = io('http://localhost:3000'); // Connect to your backend socket.io server
 
   // Sample data for events (can be fetched from API if available)
   const upcomingEvents = [
@@ -229,20 +236,67 @@ const Dashboard = () => {
             hour: '2-digit',
             minute: '2-digit',
           }),
-          read: false
+          read: false,
+          // Extract the department ID from the department object
+          departmentId: notification.department ? notification.department._id : null,
+          departmentCategory: notification.department ? notification.department.category : ''
         }));
         setNotifications(formattedNotifications);
+
+        // Set the department category from the first notification if available
+        if (formattedNotifications.length > 0 && formattedNotifications[0].departmentCategory) {
+          setDepartmentCategory(formattedNotifications[0].departmentCategory);
+        }
+
+        // After fetching notifications, if there's at least one, join its department room
+        if (formattedNotifications.length > 0 && formattedNotifications[0].departmentId) {
+          socket.emit("joinDepartment", formattedNotifications[0].departmentId);
+          console.log(`Joined department room: ${formattedNotifications[0].departmentId}`);
+        }
+
       } catch (error) {
         console.error('Error fetching notifications:', error);
       }
     };
+
+    // Socket.io listener for 'notify' event
+    socket.on('notify', (newNotification) => {
+      // Format the new notification
+      const formattedNewNotification = {
+        id: newNotification._id,
+        title: newNotification.title,
+        message: newNotification.description,
+        time: new Date(newNotification.date).toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        read: false,
+        // Extract the department ID and category from the department object for new notifications
+        departmentId: newNotification.department ? newNotification.department._id : null,
+        departmentCategory: newNotification.department ? newNotification.department.category : ''
+      };
+      // Add the new notification to the beginning of the notifications array
+      setNotifications(prevNotifications => [formattedNewNotification, ...prevNotifications]);
+      toast({
+        title: newNotification.title,
+        description: newNotification.description,
+        className: 'bg-blue-100 text-blue-800 border-l-4 border-blue-500',
+      });
+    });
+
+   socket.onAny((event, ...args) => {
+      console.log(`📲 Received: ${event}`, args);
+    });
 
 
     fetchStudents();
     fetchCourses();
     fetchGrades();
     fetchNotifications();
-  }, []);
+  }, []); // Empty dependency array means this useEffect runs once on mount
 
   // Calculate percentage changes
   const courseChange = prevSemesterTotalCourses !== 0
@@ -258,17 +312,18 @@ const Dashboard = () => {
 
   const handleViewAllNotifications = (e) => {
     e.preventDefault();
-    setDisplayCount(prevCount => prevCount === 4 ? 10 : 4); // Toggle between 4 and 10
+    // Toggle between 4 and a maximum of 10 notifications
+    setDisplayCount(prevCount => prevCount === 4 ? Math.min(10, notifications.length) : 4);
   };
 
-  const notificationsToDisplay = notifications.slice(-displayCount);
+  const notificationsToDisplay = notifications.slice(0, displayCount);
 
 
   return (
     <div className="p-6 space-y-6 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
       {/* Header and Welcome */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-blue-900">Welcome, Admin</h1>
+        <h1 className="text-3xl font-bold text-blue-900">Welcome,{departmentCategory} Admin</h1>
         <p className="text-blue-700">University Management System Dashboard</p>
       </div>
 
@@ -495,7 +550,7 @@ const Dashboard = () => {
               {/* Only show "View all notifications" if there are more notifications than currently displayed and displayCount is less than total notifications */}
               {notifications.length > 4 && (
                 <div className="text-center">
-                  {displayCount <= 4 ? (
+                  {displayCount < 5 ? (
                     <a href="#" onClick={handleViewAllNotifications} className="text-blue-600 text-sm hover:underline">
                       View all notifications
                     </a>

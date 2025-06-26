@@ -1,6 +1,7 @@
 const Course = require('../models/Course ');
 const Department = require('../models/Department');
 const Notify = require('../models/Notifications');
+const socket = require('../config/Socket')
 
 exports.getAllCourses = async (req, res) => {
     const departments = await Department.find({ category: req.user.departmentCategory });
@@ -32,21 +33,30 @@ exports.getCourseByCode = async (req, res) => {
 
 }
 
-exports.addCourse = (req, res) => {
+exports.addCourse = async (req, res) => {
+    const departments = await Department.find({ category: req.user.departmentCategory });
+    const departmentId = departments.map(dep => dep._id);
     new Course(req.body).save()
         .then((data) => {
             new Notify({
                 title: "New Course add",
-                description: `Course number ${data.courseId} has added to the list.`
+                description: `Course number ${data.courseId} has added to the list.`,
+                department: departmentId[0]
             }).save()
-                .then(() => {
+                .then((data) => {
+                    const io = req.app.get('io');
 
-                    res.json(data)
+                    io.to(departmentId[0].toString()).emit('notify', {
+                        title: data.title,
+                        description: data.description,
+                        date: data.date
+                    });
+
                 })
                 .catch(err => {
-                    console.log(err)
+                    console.log(err);
                 })
-
+            res.json(data);
         })
         .catch((err) => {
             res.status(500).json({ error: err })
@@ -55,12 +65,27 @@ exports.addCourse = (req, res) => {
 }
 
 exports.updateInfo = async (req, res) => {
+    const departments = await Department.find({ category: req.user.departmentCategory });
+    const departmentId = departments.map(dep => dep._id);
     await Course.findOneAndUpdate({ courseId: req.params.code }, req.body, { new: true })
         .then(data => {
             new Notify({
                 title: "Course Info Change",
-                description: `Course number ${data.courseId} has Updated.`
+                description: `Course number ${data.courseId} has Updated.`,
+                department: departmentId[0]
             }).save()
+                .then((data) => {
+                    const io = req.app.get('io');
+
+                     io.to(departmentId[0].toString()).emit('notify', {
+                        title: data.title,
+                        description: data.description,
+                        date: data.date
+                    });
+                })
+                .catch(err => {
+                    console.log(err);
+                })
 
             res.json({ message: 'course info updated successfully!', data });
         })
@@ -70,14 +95,30 @@ exports.updateInfo = async (req, res) => {
 }
 
 exports.deleteCourse = async (req, res) => {
+    const departments = await Department.find({ category: req.user.departmentCategory });
+    const departmentId = departments.map(dep => dep._id);
+
     await Course.findOneAndDelete({ courseId: req.params.code })
         .then((data) => {
             if (data) {
                 new Notify({
                     title: "Course Deleted",
-                    description: `Course number ${data.courseId} has been deleted.`
+                    description: `Course number ${data.courseId} has been deleted.`,
+                    department: departmentId[0]
 
                 }).save()
+                    .then((data) => {
+                        const io = req.app.get('io');
+
+                         io.to(departmentId[0].toString()).emit('notify', {
+                        title: data.title,
+                        description: data.description,
+                        date: data.date
+                    });
+                    })
+                    .catch(err => {
+                        console.log(err);
+                    })
                 res.json({ message: 'course deleted successfully!' });
             } else {
                 res.status(400).json({ message: 'course not found' })

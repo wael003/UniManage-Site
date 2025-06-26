@@ -77,6 +77,10 @@ exports.getGrades = (req, res) => {
 
 
 exports.addGrade = async (req, res) => {
+
+    const departments = await Department.find({ category: req.user.departmentCategory });
+    const departmentId = departments.map(dep => dep._id);
+
     const { student, course, grade } = req.body;
 
     try {
@@ -99,8 +103,21 @@ exports.addGrade = async (req, res) => {
             );
             await new Notify({
                 title: "Course Completed",
-                description: `Student ${st.name} has completed the course ${credit.name} and his grade is ${grade}.`
-            }).save();
+                description: `Student ${st.name} has completed the course ${credit.name} and his grade is ${grade}.`,
+                department : departmentId[0]
+            }).save()
+             .then((data) => {
+                    const io = req.app.get('io');
+                    
+                    io.emit('notify', {
+                        title: data.title, // or .name
+                        description: data.description,
+                        date: data.date
+                    });
+                })
+                .catch(err => {
+                    console.log(err);
+                })
         }
 
         return res.json({ message: 'Grade added successfully!' });
@@ -112,6 +129,9 @@ exports.addGrade = async (req, res) => {
 
 
 exports.updateGrade = async (req, res) => {
+    const departments = await Department.find({ category: req.user.departmentCategory });
+    const departmentId = departments.map(dep => dep._id);
+
     try {
         const updatedGrade = await Grade.findByIdAndUpdate(req.params.gradeId, req.body, { new: true })
             .populate('student', 'name studentId')
@@ -142,11 +162,21 @@ exports.updateGrade = async (req, res) => {
         // Save a notification
         await new Notify({
             title: "Grade Updated",
-            description: `Grade for student ${updatedGrade.student.name} in course ${updatedGrade.course.name} has been updated to ${updatedGrade.grade}.`
+            description: `Grade for student ${updatedGrade.student.name} in course ${updatedGrade.course.name} has been updated to ${updatedGrade.grade}.`,
+            department : departmentId[0]
         }).save()
-        .then(()=>{
-            console.log("notify saved")
-        });
+        .then((data) => {
+                    const io = req.app.get('io');
+                    
+                    io.to(departmentId[0].toString()).emit('notify', {
+                        title: data.title,
+                        description: data.description,
+                        date: data.date
+                    });
+                })
+                .catch(err => {
+                    console.log(err);
+                })
 
         res.json({ message: 'Grade info updated successfully!', data: updatedGrade });
 
