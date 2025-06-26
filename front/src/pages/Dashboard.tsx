@@ -336,9 +336,9 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-blue-900">{totalStudents}</div>
-            <p className="text-xs text-blue-600 mt-1">
+            {/* <p className="text-xs text-blue-600 mt-1">
               <span className="text-green-600">↑ 12%</span> from last semester
-            </p>
+            </p> */}
           </CardContent>
         </Card>
 
