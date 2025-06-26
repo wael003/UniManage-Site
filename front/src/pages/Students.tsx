@@ -12,6 +12,9 @@ import { toast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import ContactModal from '@/components/ContactModal';
 
+// Define the target semester for filtering courses displayed in the student list
+const TARGET_SEMESTER = "Spring 2025";
+
 // Function to fetch departments from the API
 const fetchDepartments = async () => {
   try {
@@ -21,10 +24,7 @@ const fetchDepartments = async () => {
 
     if (res.status === 401) {
       toast({ title: 'Login Required', description: 'You need to log in to access department data.', className: 'bg-orange-100 text-orange-800 border-l-4 border-orange-500' });
-      setTimeout(() => {
-        window.location.href = '/Login';
-      }, 2000);
-      return [];
+      throw new Error('Unauthorized');
     }
 
     if (!res.ok) {
@@ -41,6 +41,7 @@ const fetchDepartments = async () => {
   }
 };
 
+// Function to fetch students from the API
 const fetchStudents = async () => {
   const res = await fetch('http://localhost:3000/api/students', {
     credentials: 'include'
@@ -57,6 +58,7 @@ const fetchStudents = async () => {
   return result.data;
 };
 
+// Function to delete a student
 const deleteStudent = async (id: string) => {
   const res = await fetch(`http://localhost:3000/api/students/${id}`, {
     method: 'DELETE',
@@ -73,6 +75,7 @@ const deleteStudent = async (id: string) => {
   return res.json();
 };
 
+// Function to add a student
 const addStudent = async (student: any) => {
   const res = await fetch('http://localhost:3000/api/students', {
     method: 'POST',
@@ -91,6 +94,7 @@ const addStudent = async (student: any) => {
   return res.json();
 };
 
+// Function to update a student
 const updateStudent = async (student: any) => {
   const res = await fetch(`http://localhost:3000/api/students/${student._id}`, {
     method: 'PUT',
@@ -193,6 +197,7 @@ const Students = () => {
     },
   });
 
+  // Function to fetch grades for a specific student from the API
   const fetchStudentGrades = async (studentId: string) => {
     try {
       const res = await fetch(`http://localhost:3000/grades/${studentId}`, {
@@ -214,6 +219,7 @@ const Students = () => {
     }
   };
 
+  // GPA calculation function
   const calculateGPA = (grades: any[]) => {
     if (!grades || grades.length === 0) return null;
 
@@ -230,6 +236,7 @@ const Students = () => {
     return totalCourses > 0 ? totalGradePoints / totalCourses : null;
   };
 
+  // Effect to fetch all student grades and calculate GPAs when students data changes
   useEffect(() => {
     const fetchAllGradesAndCalculateGPAs = async () => {
       const gradesMap: Record<string, any[]> = {};
@@ -237,11 +244,17 @@ const Students = () => {
 
       for (const student of students) {
         const grades = await fetchStudentGrades(student._id);
-        gradesMap[student._id] = grades;
 
-        const gpa = calculateGPA(grades);
+        // Filter grades to only include courses from TARGET_SEMESTER
+        const filteredGrades = grades.filter(grade => {
+          return grade.course?.semester === TARGET_SEMESTER;
+        });
+
+        gradesMap[student._id] = filteredGrades;
+
+        const gpa = calculateGPA(filteredGrades);
         if (gpa !== null) {
-          gpaMap[student._id] = gpa;
+          gpaMap[student._id] = parseFloat(gpa.toFixed(2)); // Ensure GPA is a number and formatted
         }
       }
 
@@ -252,8 +265,9 @@ const Students = () => {
     if (students.length > 0) {
       fetchAllGradesAndCalculateGPAs();
     }
-  }, [students]);
+  }, [students]); // Dependency on students ensures grades are re-fetched/re-filtered when student data changes
 
+  // Filter students based on search term and department
   const filteredStudents = students.filter((student: any) => {
     const matchesSearch =
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -265,12 +279,16 @@ const Students = () => {
     return matchesSearch && matchesDepartment;
   });
 
+  // Handle student deletion
   const handleDelete = (id: string) => {
+    // Replaced window.confirm with a custom modal/dialog if needed in a real app,
+    // but for quick confirmation, window.confirm is used as per previous patterns.
     if (window.confirm('Are you sure you want to delete this student?')) {
       deleteMutation.mutate(id);
     }
   };
 
+  // Handle adding a new student
   const handleAddStudent = () => {
     // Find the department ID based on the selected department name
     const selectedDepartment = departments.find(
@@ -279,7 +297,7 @@ const Students = () => {
     if (selectedDepartment) {
       const studentDataToSend = {
         ...newStudent,
-        department: selectedDepartment._id, // Send the department's _id
+        department: selectedDepartment._id, // Send the department's _id to the backend
       };
       addMutation.mutate(studentDataToSend);
     } else {
@@ -287,6 +305,7 @@ const Students = () => {
     }
   };
 
+  // Handle editing an existing student
   const handleEditStudent = () => {
     if (currentStudent) {
       // Find the department ID based on the selected department name
@@ -296,7 +315,7 @@ const Students = () => {
       if (selectedDepartment) {
         const studentDataToSend = {
           ...currentStudent,
-          department: selectedDepartment._id, // Send the department's _id
+          department: selectedDepartment._id, // Send the department's _id to the backend
         };
         updateMutation.mutate(studentDataToSend);
       } else {
@@ -305,11 +324,13 @@ const Students = () => {
     }
   };
 
+  // Open the edit dialog and populate it with student data
   const openEditDialog = (student: any) => {
     setCurrentStudent({
       ...student,
       // When opening the dialog, display the department name
       department: student.department ? student.department.name : '',
+      // Format dates for input fields
       enrollmentDate: student.enrollmentDate ? new Date(student.enrollmentDate).toISOString().split('T')[0] : '',
       entryDate: student.entryDate ? new Date(student.entryDate).toISOString().split('T')[0] : '',
       expectedGraduation: student.expectedGraduation ? new Date(student.expectedGraduation).toISOString().split('T')[0] : '',
@@ -317,19 +338,23 @@ const Students = () => {
     setIsEditDialogOpen(true);
   };
 
+  // Open the contact modal
   const openContactModal = (student: any) => {
     setSelectedStudent({
       ...student,
-      department: student.department ? student.department.name : 'N/A' // Store just the name
+      department: student.department ? student.department.name : 'N/A' // Store just the name for display in modal
     });
     setIsContactModalOpen(true);
   };
 
+  // Loading and error states
   if (isLoading || isLoadingDepartments) return <p className="p-6 text-blue-800">Loading...</p>;
-  if (error) return <p className="p-6 text-red-600">Failed to load students.</p>;
+  if (error) return <p className="p-6 text-red-600">Failed to load students: {error.message}</p>;
+
 
   return (
     <div className="p-6 space-y-6 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+      {/* Header section with title and add student button */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-blue-900">Student Management</h1>
@@ -340,6 +365,7 @@ const Students = () => {
         </Button>
       </div>
 
+      {/* Search and filter cards */}
       <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
         <CardContent className="p-6">
           <div className="flex flex-col lg:flex-row gap-4">
@@ -364,11 +390,13 @@ const Students = () => {
                   ))}
                 </SelectContent>
               </Select>
+              {/* Semester and Year filter dropdowns removed as per request for hardcoded Spring 2025 */}
             </div>
           </div>
         </CardContent>
       </Card>
 
+      {/* Students table card */}
       <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm overflow-hidden">
         <CardHeader className="bg-blue-50 pb-2">
           <CardTitle className="text-blue-900 text-xl">Students Directory</CardTitle>
@@ -385,8 +413,8 @@ const Students = () => {
                   <TableHead className="text-blue-900">Name</TableHead>
                   <TableHead className="text-blue-900">Email</TableHead>
                   <TableHead className="text-blue-900">Department</TableHead>
-                  <TableHead className="text-blue-900">Courses</TableHead>
-                  <TableHead className="text-blue-900">GPA</TableHead>
+                  <TableHead className="text-blue-900">Courses ({TARGET_SEMESTER})</TableHead> {/* Updated column header */}
+                  <TableHead className="text-blue-900">GPA ({TARGET_SEMESTER})</TableHead> {/* Updated column header */}
                   <TableHead className="text-blue-900 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -501,7 +529,7 @@ const Students = () => {
         </CardContent>
       </Card>
 
-      {/* Add Dialog */}
+      {/* Add Student Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-md max-h-[80vh] flex flex-col">
           <DialogHeader>
@@ -634,7 +662,7 @@ const Students = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog */}
+      {/* Edit Student Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-md max-h-[80vh] flex flex-col">
           <DialogHeader>
