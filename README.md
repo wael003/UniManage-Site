@@ -1,10 +1,10 @@
 ﻿# UniManage-Site
  
- #folder back 
+ # folder back 
 npm install
 node server.js
 
-#folder front
+# folder front
 npm install
 npm run dev
 
@@ -19,5 +19,17 @@ NODEMILER_USER, // this is the email you use to send messages
 <<<<<<< HEAD
 NODEMILER_PASSKEY, // this is the passkey you get for the email
 =======
-NODEMILER_PASSKEY, // this is the passkey you get for the email
->>>>>>> e72322c532418ecf7549129607c36c6102b2ec4a
+
+## to register a user in postman use after run the back-end server:
+POST:localhost:3000/register
+body:
+{
+"name" : "Put Name here",
+"email" : "email",
+"password": "your password",
+"departmentCategory" : "IT" //for example
+"role" : "admin"
+ }
+then you can login to the system.
+
+
