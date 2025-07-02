@@ -37,7 +37,8 @@ exports.Login = async (req, res) => {
         res.cookie("token", token, {
             maxAge: 60 * 60 * 1000, 
             httpOnly: true,         
-            secure: false           
+            secure: true,
+            sameSite: 'None',
         });
 
         res.status(200).json({ message: 'Login successful!', user: { id: user._id, email: user.email }, token: token }); // Optional: useful if the frontend also needs the token
