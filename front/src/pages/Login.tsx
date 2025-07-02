@@ -141,8 +141,11 @@ const Login = () => {
           </form>
           {/* You can remove or modify this section once real credentials are in place */}
           <div className="mt-6 text-center">
-            <p className="text-sm text-blue-700">
+            {/* <p className="text-sm text-blue-700">
               Access restricted to university administration staff. Contact IT support for access.
+            </p> */}
+            <p className="text-sm text-blue-700">
+             use IT_dept@uni.edu.jo and IT_dept for password
             </p>
 
           </div>
