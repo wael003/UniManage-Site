@@ -43,7 +43,7 @@ const StudentProfile = () => {
   useEffect(() => {
     const fetchStudent = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/api/students/${id}`, {
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/api/students/${id}`, {
           credentials: 'include',
         });
         if (res.status === 401) {
@@ -65,7 +65,7 @@ const StudentProfile = () => {
     const fetchGrades = async () => {
       try {
         // This fetch uses the MongoDB _id, which is correct for getting all grades associated with it
-        const res = await fetch(`http://localhost:3000/grades/${id}`, {
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/grades/${id}`, {
           credentials: 'include',
         });
         if (res.status === 401) {
@@ -106,7 +106,7 @@ const StudentProfile = () => {
 
       try {
         // *** CRITICAL CHANGE: Use student.studentId instead of the URL 'id' for GPA fetch ***
-        const res = await fetch(`http://localhost:3000/grades/gpa/${student.studentId}`, {
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/grades/gpa/${student.studentId}`, {
           credentials: 'include',
         });
         if (res.status === 401) {

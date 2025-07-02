@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch'; // Assuming you have a Switch component for toggling
 
-const API_BASE_URL = 'http://localhost:3000/grades';
+const API_BASE_URL = `${process.env.REACT_APP_API_URL}/grades`;
 const TARGET_SEMESTER = 'Spring 2025'; // Define the target semester here
 
 const Grades = () => {

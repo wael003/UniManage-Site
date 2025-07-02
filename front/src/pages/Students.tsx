@@ -18,7 +18,7 @@ const TARGET_SEMESTER = "Spring 2025";
 // Function to fetch departments from the API
 const fetchDepartments = async () => {
   try {
-    const res = await fetch('http://localhost:3000/dept', {
+    const res = await fetch(`${process.env.REACT_APP_API_URL}/dept`, {
       credentials: 'include'
     });
 
@@ -43,7 +43,7 @@ const fetchDepartments = async () => {
 
 // Function to fetch students from the API
 const fetchStudents = async () => {
-  const res = await fetch('http://localhost:3000/api/students', {
+  const res = await fetch(`${process.env.REACT_APP_API_URL}/api/students`, {
     credentials: 'include'
   });
   if (res.status === 401) {
@@ -60,7 +60,7 @@ const fetchStudents = async () => {
 
 // Function to delete a student
 const deleteStudent = async (id: string) => {
-  const res = await fetch(`http://localhost:3000/api/students/${id}`, {
+  const res = await fetch(`${process.env.REACT_APP_API_URL}/api/students/${id}`, {
     method: 'DELETE',
     credentials: 'include',
   });
@@ -77,7 +77,7 @@ const deleteStudent = async (id: string) => {
 
 // Function to add a student
 const addStudent = async (student: any) => {
-  const res = await fetch('http://localhost:3000/api/students', {
+  const res = await fetch(`${process.env.REACT_APP_API_URL}/api/students`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -96,7 +96,7 @@ const addStudent = async (student: any) => {
 
 // Function to update a student
 const updateStudent = async (student: any) => {
-  const res = await fetch(`http://localhost:3000/api/students/${student._id}`, {
+  const res = await fetch(`${process.env.REACT_APP_API_URL}/api/students/${student._id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -200,7 +200,7 @@ const Students = () => {
   // Function to fetch grades for a specific student from the API
   const fetchStudentGrades = async (studentId: string) => {
     try {
-      const res = await fetch(`http://localhost:3000/grades/${studentId}`, {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/grades/${studentId}`, {
         credentials: 'include',
       });
       if (res.status === 401) {

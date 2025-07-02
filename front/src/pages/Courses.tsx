@@ -11,8 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-const API_BASE_URL = 'http://localhost:3000/courses';
-const DEPT_API_URL = 'http://localhost:3000/dept'; // New API URL for departments
+const API_BASE_URL = `${process.env.REACT_APP_API_URL}/courses`;
+const DEPT_API_URL = `${process.env.REACT_APP_API_URL}/dept`; // New API URL for departments
 
 interface Course {
   id: string;

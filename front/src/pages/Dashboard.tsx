@@ -39,7 +39,7 @@ const Dashboard = () => {
   const PREVIOUS_SEMESTER = 'Fall 2024'; // Define the previous semester here
 
   // Initialize socket.io client
-  const socket = io('http://localhost:3000'); // Connect to your backend socket.io server
+  const socket = io(`${process.env.REACT_APP_API_URL}`); // Connect to your backend socket.io server
 
   // Sample data for events (can be fetched from API if available)
   const upcomingEvents = [
@@ -73,7 +73,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/students/', {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/students/`, {
           credentials: 'include',
         });
         if (response.status === 401) {
@@ -114,7 +114,7 @@ const Dashboard = () => {
 
     const fetchCourses = async () => {
       try {
-        const response = await fetch('http://localhost:3000/courses/', {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/courses/`, {
           credentials: 'include',
         });
         if (response.status === 401) {
@@ -145,7 +145,7 @@ const Dashboard = () => {
 
     const fetchGrades = async () => {
       try {
-        const response = await fetch('http://localhost:3000/grades/', {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/grades/`, {
           credentials: 'include',
         });
         if (response.status === 401) {
@@ -212,7 +212,7 @@ const Dashboard = () => {
 
     const fetchNotifications = async () => {
       try {
-        const response = await fetch('http://localhost:3000/notify', {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/notify`, {
           credentials: 'include',
         });
         if (response.status === 401) {
