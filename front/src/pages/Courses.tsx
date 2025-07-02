@@ -10,9 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
-const API_BASE_URL = `${process.env.REACT_APP_API_URL}/courses`;
-const DEPT_API_URL = `${process.env.REACT_APP_API_URL}/dept`; // New API URL for departments
+const apiURL = import.meta.env.REACT_APP_API_URL;
+const API_BASE_URL = `${apiURL}/courses`;
+const DEPT_API_URL = `${apiURL}/dept`; // New API URL for departments
 
 interface Course {
   id: string;

@@ -15,7 +15,7 @@ const Department = require('./models/Department');
 const notify = require('./routes/notify');
 const { authMiddleware } = require('./middleware/auth');
 
-const FRONTEND_ORIGIN = 'http://localhost:8080';
+const FRONTEND_ORIGIN = 'https://unimanage-site-1.onrender.com';
 
 const app = express();
 

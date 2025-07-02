@@ -19,7 +19,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 
 // Ensure socket.io-client is imported
 import { io } from 'socket.io-client';
-
+const apiURL = import.meta.env.REACT_APP_API_URL;
 const Dashboard = () => {
   const [totalStudents, setTotalStudents] = useState(0);
   const [totalCourses, setTotalCourses] = useState(0);
@@ -39,7 +39,7 @@ const Dashboard = () => {
   const PREVIOUS_SEMESTER = 'Fall 2024'; // Define the previous semester here
 
   // Initialize socket.io client
-  const socket = io(`${process.env.REACT_APP_API_URL}`); // Connect to your backend socket.io server
+  const socket = io(`${apiURL}`); // Connect to your backend socket.io server
 
   // Sample data for events (can be fetched from API if available)
   const upcomingEvents = [
@@ -73,7 +73,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/students/`, {
+        const response = await fetch(`${apiURL}/api/students/`, {
           credentials: 'include',
         });
         if (response.status === 401) {
@@ -114,7 +114,7 @@ const Dashboard = () => {
 
     const fetchCourses = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/courses/`, {
+        const response = await fetch(`${apiURL}/courses/`, {
           credentials: 'include',
         });
         if (response.status === 401) {
@@ -145,7 +145,7 @@ const Dashboard = () => {
 
     const fetchGrades = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/grades/`, {
+        const response = await fetch(`${apiURL}/grades/`, {
           credentials: 'include',
         });
         if (response.status === 401) {
@@ -212,7 +212,7 @@ const Dashboard = () => {
 
     const fetchNotifications = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/notify`, {
+        const response = await fetch(`${apiURL}/notify`, {
           credentials: 'include',
         });
         if (response.status === 401) {
