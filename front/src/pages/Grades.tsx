@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch'; // Assuming you have a Switch component for toggling
-const apiURL = "https://unimanage-site.onrender.com";
+const apiURL = "https://unimanage-site-backend.onrender.com";
 const API_BASE_URL = `${apiURL}/grades`;
 const TARGET_SEMESTER = 'Spring 2025'; // Define the target semester here
 
