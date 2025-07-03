@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import AcademicReportModal from '@/components/AcademicReportModal';
 import { toast } from '@/hooks/use-toast'; // Make sure you import toast
-const apiURL = "https://unimanage-site.onrender.com";
+const apiURL = "https://unimanage-site-backend.onrender.com";
 type GPAType = {
   student: string;
   studentId: number;
