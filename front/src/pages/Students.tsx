@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import ContactModal from '@/components/ContactModal';
-const apiURL = "https://unimanage-site.onrender.com";
+const apiURL = "https://unimanage-site-backend.onrender.com";
 // Define the target semester for filtering courses displayed in the student list
 const TARGET_SEMESTER = "Spring 2025";
 
