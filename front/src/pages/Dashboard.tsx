@@ -19,7 +19,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 
 // Ensure socket.io-client is imported
 import { io } from 'socket.io-client';
-const apiURL = "https://unimanage-site.onrender.com";
+const apiURL = "https://unimanage-site-backend.onrender.com";
 const Dashboard = () => {
   const [totalStudents, setTotalStudents] = useState(0);
   const [totalCourses, setTotalCourses] = useState(0);
